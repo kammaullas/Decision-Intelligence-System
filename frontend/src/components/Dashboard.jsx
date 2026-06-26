@@ -12,7 +12,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token) return
     
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/dashboard', {
+    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/dashboard`, {
       headers: { 'X-Auth-Token': token }
     })
       .then(res => res.json())

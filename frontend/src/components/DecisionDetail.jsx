@@ -54,7 +54,7 @@ export default function DecisionDetail() {
     
     setUploadStatus('Extracting document...')
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/extract-document', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/extract-document`, {
         method: 'POST',
         headers: { 'X-Auth-Token': token },
         body: formData
@@ -75,7 +75,7 @@ export default function DecisionDetail() {
 
     setLoading(true, "Evaluating outcome...")
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/evaluate-outcome', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/evaluate-outcome`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
         body: JSON.stringify({

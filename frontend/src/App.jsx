@@ -46,7 +46,7 @@ function App() {
     // Check auth on load
     const savedToken = localStorage.getItem('dia_token')
     if (savedToken) {
-      fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/check-auth', {
+      fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/check-auth`, {
         headers: { 'X-Auth-Token': savedToken }
       })
       .then(res => res.json())
