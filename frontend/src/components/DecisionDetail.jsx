@@ -20,14 +20,14 @@ export default function DecisionDetail() {
   const fetchDecisionAndOutcomes = async () => {
     setLoading(true, "Loading decision data...")
     try {
-      const resD = await fetch(`http://localhost:5000/api/decisions/${id}`, {
+      const resD = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}`, {
         headers: { 'X-Auth-Token': token }
       })
       const dataD = await resD.json()
       if (dataD.error) throw new Error(dataD.error)
       setDecision(dataD)
 
-      const resO = await fetch(`http://localhost:5000/api/decisions/${id}/outcomes`, {
+      const resO = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}/outcomes`, {
         headers: { 'X-Auth-Token': token }
       })
       const dataO = await resO.json()
@@ -54,7 +54,7 @@ export default function DecisionDetail() {
     
     setUploadStatus('Extracting document...')
     try {
-      const res = await fetch('http://localhost:5000/api/extract-document', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/extract-document', {
         method: 'POST',
         headers: { 'X-Auth-Token': token },
         body: formData
@@ -75,7 +75,7 @@ export default function DecisionDetail() {
 
     setLoading(true, "Evaluating outcome...")
     try {
-      const res = await fetch('http://localhost:5000/api/evaluate-outcome', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/evaluate-outcome', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
         body: JSON.stringify({
@@ -147,7 +147,7 @@ export default function DecisionDetail() {
         <h1>{decision.title}</h1>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button className="btn btn-secondary" onClick={() => navigate('/history')}>&larr; Back</button>
-          <button className="btn btn-secondary" onClick={() => window.open(`http://localhost:5000/api/decisions/${id}/report?token=${token}`, '_blank')} style={{ borderColor: 'var(--ac)', color: 'var(--ac)' }}>Export Executive Report</button>
+          <button className="btn btn-secondary" onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}/report?token=${token}`, '_blank')} style={{ borderColor: 'var(--ac)', color: 'var(--ac)' }}>Export Executive Report</button>
           <button className="btn btn-p" onClick={() => setShowOutcomeForm(!showOutcomeForm)}>Record Outcome</button>
         </div>
       </div>

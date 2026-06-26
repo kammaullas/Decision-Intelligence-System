@@ -30,7 +30,7 @@ export default function Step1_Define() {
 
     store.setLoading(true, "Analyzing decision framing...")
     try {
-      const res = await fetch('http://localhost:5000/api/frame-decision', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/frame-decision', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export default function Step1_Define() {
         payloadDesc += `\n\n--- EXTRACTED DOCUMENT CONTEXT ---\n${JSON.stringify(extractedData)}`;
       }
 
-      const res = await fetch('http://localhost:5000/api/generate-options', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/generate-options', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ export default function Step1_Define() {
 
     store.setLoading(true, "Analyzing document...")
     try {
-      const res = await fetch('http://localhost:5000/api/extract-document', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/extract-document', {
         method: 'POST',
         headers: {
           'X-Auth-Token': store.token

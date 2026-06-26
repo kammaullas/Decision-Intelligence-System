@@ -19,7 +19,7 @@ export default function Step3_Criteria() {
         payloadContext += `\n\n--- EXTRACTED DOCUMENT CONTEXT ---\n${JSON.stringify(extractedData)}`;
       }
 
-      const res = await fetch('http://localhost:5000/api/evaluate', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/evaluate', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

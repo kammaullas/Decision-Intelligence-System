@@ -10,7 +10,7 @@ export default function OrganizationalInsights() {
 
     const fetchMetrics = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/organizational-metrics', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/organizational-metrics', {
           headers: { 'X-Auth-Token': token }
         })
         const data = await res.json()
@@ -27,7 +27,7 @@ export default function OrganizationalInsights() {
     setLoading(true, "Analyzing organizational patterns...")
     setLoadingInsights(true)
     try {
-      const res = await fetch('http://localhost:5000/api/organizational-insights', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/organizational-insights', {
         method: 'POST',
         headers: { 'X-Auth-Token': token }
       })

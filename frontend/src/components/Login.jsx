@@ -11,7 +11,7 @@ export default function Login() {
     setLoading(true, "Checking access...")
     setError(false)
     try {
-      const res = await fetch('http://localhost:5000/api/login', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
@@ -32,7 +32,7 @@ export default function Login() {
   const handleDemo = async () => {
     setLoading(true, "Setting up demo...")
     try {
-      const res = await fetch('http://localhost:5000/api/login', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: 'demo' })

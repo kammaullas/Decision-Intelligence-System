@@ -12,7 +12,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token) return
     
-    fetch('http://localhost:5000/api/dashboard', {
+    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/dashboard', {
       headers: { 'X-Auth-Token': token }
     })
       .then(res => res.json())
@@ -158,7 +158,7 @@ export default function Dashboard() {
                 <div style={{ textAlign: 'right', fontWeight: 500, fontSize: '0.9rem', display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center' }}>
                   {dec.status}
                   <button 
-                    onClick={(e) => { e.stopPropagation(); window.open(`http://localhost:5000/api/decisions/${dec._id}/report?token=${token}`, '_blank'); }}
+                    onClick={(e) => { e.stopPropagation(); window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${dec._id}/report?token=${token}`, '_blank'); }}
                     style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: 'var(--t1)', fontSize: '0.8rem' }}
                     title="Export Executive Report"
                   >
