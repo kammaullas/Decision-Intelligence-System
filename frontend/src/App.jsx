@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, LayoutDashboard, Fingerprint, Lightbulb, History, LogOut } from 'lucide-react'
 import { useStore } from './store'
 import Login from './components/Login'
 import Step1_Define from './components/Step1_Define'
@@ -11,6 +11,7 @@ import DecisionHistory from './components/DecisionHistory'
 import DecisionDetail from './components/DecisionDetail'
 import OrganizationalInsights from './components/OrganizationalInsights'
 import Dashboard from './components/Dashboard'
+import DecisionDNA from './components/DecisionDNA'
 import './index.css'
 
 const Wizard = () => {
@@ -84,16 +85,27 @@ function App() {
               </div>
             ) : <div className="stepper" style={{ opacity: 0 }}></div>}
             
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none' }} onClick={() => navigate('/dashboard')}>Dashboard</button>
-              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none' }} onClick={() => navigate('/insights')}>Insights</button>
-              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none' }} onClick={() => navigate('/history')}>History</button>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/dashboard')}>
+                <LayoutDashboard size={16} /> Dashboard
+              </button>
+              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/dna')}>
+                <Fingerprint size={16} /> My DNA
+              </button>
+              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/insights')}>
+                <Lightbulb size={16} /> Insights
+              </button>
+              <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/history')}>
+                <History size={16} /> History
+              </button>
               
-              <button className="theme-toggle" onClick={toggleTheme} style={{ background: 'transparent', border: 'none', color: 'var(--t1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}>
+              <button className="theme-toggle" onClick={toggleTheme} style={{ background: 'transparent', border: 'none', color: 'var(--t1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', marginLeft: '8px' }}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
 
-              <button className="logout-btn" onClick={() => { logout(); navigate('/'); }}>Logout</button>
+              <button className="logout-btn" style={{ background: 'transparent', color: 'var(--rd)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.9rem', fontWeight: 500 }} onClick={() => { logout(); navigate('/'); }}>
+                <LogOut size={16} /> Logout
+              </button>
             </div>
           </nav>
           <main>
@@ -106,6 +118,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dna" element={<DecisionDNA />} />
               <Route path="/new" element={<Wizard />} />
               <Route path="/history" element={<DecisionHistory />} />
               <Route path="/history/:id" element={<DecisionDetail />} />

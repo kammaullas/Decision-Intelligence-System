@@ -1,4 +1,4 @@
-
+/* Global Application Styles */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -6,42 +6,44 @@
     }
 
     :root {
-      --bg: #07070d;
-      --s1: #0f0f18;
-      --s2: #171724;
-      --b1: #252535;
-      --b2: #35354a;
-      --t1: #eeeef5;
-      --t2: #9090b0;
-      --t3: #55556a;
-      --ac: #7c6dfa;
-      --ac-hover: #6a5ce8;
-      --ac2: #f0a500;
-      --gr: #22c55e;
-      --rd: #f43f5e;
-      --am: #f59e0b;
-      --nav-bg: rgba(7, 7, 13, 0.9);
-      --err-bg: #1f0c12;
+      /* Executive Dark Navy & Gold */
+      --bg: #0b1120;
+      --s1: #111827;
+      --s2: #1f2937;
+      --b1: #374151;
+      --b2: #4b5563;
+      --t1: #f8fafc;
+      --t2: #94a3b8;
+      --t3: #64748b;
+      --ac: #d4af37;        /* Muted Gold */
+      --ac-hover: #b5952f;
+      --ac2: #38bdf8;       /* Subtle blue accent */
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+      --nav-bg: rgba(11, 17, 32, 0.85);
+      --err-bg: #450a0a;
       --err-border: #7f1d1d;
       --err-color: #fca5a5;
     }
 
     [data-theme='light'] {
-      --bg: #f9fafb;
+      /* Alabaster & Deep Blue */
+      --bg: #fafafa;
       --s1: #ffffff;
-      --s2: #f3f4f6;
-      --b1: #e5e7eb;
-      --b2: #d1d5db;
-      --t1: #111827;
-      --t2: #4b5563;
-      --t3: #9ca3af;
-      --ac: #6366f1;
-      --ac-hover: #4f46e5;
-      --ac2: #d97706;
-      --gr: #16a34a;
-      --rd: #e11d48;
-      --am: #d97706;
-      --nav-bg: rgba(249, 250, 251, 0.9);
+      --s2: #f1f5f9;
+      --b1: #e2e8f0;
+      --b2: #cbd5e1;
+      --t1: #0f172a;
+      --t2: #475569;
+      --t3: #94a3b8;
+      --ac: #1e3a8a;        /* Royal Blue */
+      --ac-hover: #1e40af;
+      --ac2: #d4af37;       /* Gold accent */
+      --success: #059669;
+      --error: #dc2626;
+      --warning: #d97706;
+      --nav-bg: rgba(250, 250, 250, 0.85);
       --err-bg: #fef2f2;
       --err-border: #f87171;
       --err-color: #991b1b;
@@ -134,8 +136,8 @@
     }
 
     .logout-btn:hover {
-      border-color: var(--rd);
-      color: var(--rd)
+      border-color: var(--error);
+      color: var(--error)
     }
 
     main {
@@ -165,6 +167,15 @@
       }
     }
 
+    @keyframes fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .fade-in {
+      animation: fade 0.4s ease-out forwards;
+    }
+
     h1 {
       font-family: "Syne", sans-serif;
       font-size: 26px;
@@ -184,8 +195,16 @@
       border: 1px solid var(--b1);
       border-radius: 14px;
       padding: 22px 26px;
-      margin-bottom: 14px
+      margin-bottom: 14px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
 
     .clabel {
       font-size: 10px;
@@ -295,12 +314,25 @@
 
     .btn-p {
       background: var(--ac);
-      color: #fff
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .btn-p:hover {
       background: var(--ac-hover);
-      transform: translateY(-1px)
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+
+    .btn-s {
+      background: var(--s2);
+      color: var(--t1);
+      border: 1px solid var(--b1)
+    }
+
+    .btn-s:hover {
+      background: var(--b1);
+      transform: translateY(-1px);
     }
 
     .btn-g {
@@ -403,7 +435,7 @@
     }
 
     .optdel:hover {
-      color: var(--rd)
+      color: var(--error)
     }
 
     .addopt {
@@ -486,17 +518,17 @@
 
     .wok {
       background: rgba(34, 197, 94, .1);
-      color: var(--gr)
+      color: var(--success)
     }
 
     .wwarn {
       background: rgba(245, 158, 11, .1);
-      color: var(--am)
+      color: var(--warning)
     }
 
     .werr {
       background: rgba(244, 63, 94, .1);
-      color: var(--rd)
+      color: var(--error)
     }
 
     .loader {
@@ -719,17 +751,17 @@
 
     .bhi {
       background: rgba(34, 197, 94, .12);
-      color: var(--gr)
+      color: var(--success)
     }
 
     .bmi {
       background: rgba(245, 158, 11, .12);
-      color: var(--am)
+      color: var(--warning)
     }
 
     .blo {
       background: rgba(244, 63, 94, .12);
-      color: var(--rd)
+      color: var(--error)
     }
 
     .tabs {
@@ -802,7 +834,7 @@
       font-size: 11px;
       font-weight: 500;
       background: rgba(244, 63, 94, .1);
-      color: var(--rd);
+      color: var(--error);
       border: 1px solid rgba(244, 63, 94, .2)
     }
 
@@ -1072,7 +1104,7 @@
     }
 
     .login-err {
-      color: var(--rd);
+      color: var(--error);
       font-size: 12px;
       margin-top: 10px;
       display: none
@@ -1122,4 +1154,40 @@
       margin-bottom: 8px;
       display: block
     }
-  
+
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .btn, .btn-g, .btn-gold, .sim-panel, .tabnav, .brow, button, .hint {
+    display: none !important;
+  }
+  .tabpn {
+    display: block !important;
+    page-break-inside: avoid;
+    margin-bottom: 20px;
+  }
+  .card, .rcard, .bestbox, .rgrid, table, tr, .chcard {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .print-only {
+    display: block !important;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    margin-top: 20px;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 5px;
+  }
+  * {
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+.print-only {
+  display: none;
+}

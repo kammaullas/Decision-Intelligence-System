@@ -1,4 +1,5 @@
 import { useStore } from '../store'
+import { List, Trash2, Plus, ArrowLeft, PlayCircle } from 'lucide-react'
 
 export default function Step2_Options() {
   const store = useStore()
@@ -28,8 +29,10 @@ export default function Step2_Options() {
   }
 
   return (
-    <>
-      <h1>Strategic options</h1>
+    <div className="fade-in">
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <List size={24} style={{ color: 'var(--ac)' }} /> Strategic options
+      </h1>
       <div className="hint">AI-generated options. Edit, remove, or add your own.</div>
       
       <div className="card">
@@ -48,19 +51,27 @@ export default function Step2_Options() {
                   e.target.style.height = e.target.scrollHeight + "px";
                 }}
               />
-              <button className="optdel" onClick={() => removeOption(i)}>x</button>
+              <button className="optdel" onClick={() => removeOption(i)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={16} />
+              </button>
             </div>
           ))}
         </div>
         {options.length < 6 && (
-          <button className="addopt" onClick={addOption}>+ Add option</button>
+          <button className="addopt" onClick={addOption} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Plus size={16} /> Add option
+          </button>
         )}
       </div>
       
       <div className="brow">
-        <button className="btn btn-g" onClick={() => setStep(1)}>Back</button>
-        <button className="btn btn-p" onClick={handleNext}>Evaluate options</button>
+        <button className="btn btn-g" onClick={() => setStep(1)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ArrowLeft size={16} /> Back
+        </button>
+        <button className="btn btn-p" onClick={handleNext} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <PlayCircle size={16} /> Evaluate options
+        </button>
       </div>
-    </>
+    </div>
   )
 }

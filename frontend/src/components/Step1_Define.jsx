@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useStore } from '../store'
+import { Sparkles, FileText, Upload, Target } from 'lucide-react'
 
 const DEMO_DATA = {
   title: "EV Expansion Strategy",
@@ -113,8 +114,10 @@ export default function Step1_Define() {
   }
 
   return (
-    <>
-      <h1>Define your decision</h1>
+    <div className="fade-in">
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Target size={24} style={{ color: 'var(--ac)' }} /> Define your decision
+      </h1>
       <div className="hint">
         {mode === 'demo' && <span className="demo-tag" style={{display:'block', marginBottom:'8px'}}>EV Demo - Fields Pre-filled. Click Generate Options to begin.</span>}
         Describe what you are deciding so AI can generate strategic options.
@@ -123,8 +126,10 @@ export default function Step1_Define() {
       <div className="card">
         <div className="clabel">Decision context</div>
         
-        <div className="doc-upload" style={{ marginBottom: '15px', padding: '15px', border: '1px dashed var(--border)', borderRadius: '8px', background: 'var(--bg-card-hover)' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>Upload Document (PDF/TXT) to Extract Context</label>
+        <div className="doc-upload" style={{ marginBottom: '15px', padding: '15px', border: '1px dashed var(--b2)', borderRadius: '8px', background: 'var(--s2)' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontWeight: '500' }}>
+            <Upload size={14} /> Upload Document (PDF/TXT) to Extract Context
+          </label>
           <input 
             type="file" 
             accept=".pdf,.txt" 
@@ -198,12 +203,16 @@ export default function Step1_Define() {
       </div>
       
       <div className="brow" style={{ gap: '15px' }}>
-        <button className="btn btn-secondary" style={{ background: 'var(--bg-card)', color: 'var(--fg)', border: '1px solid var(--border)' }} onClick={handleFrameDecision}>Analyze framing</button>
-        <button className="btn btn-p" onClick={handleGenerate}>Generate options</button>
+        <button className="btn btn-s" onClick={handleFrameDecision} style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: '8px' }}>
+          <FileText size={16} /> Check Decision Framing
+        </button>
+        <button className="btn btn-p" onClick={handleGenerate} style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: '8px' }}>
+          <Sparkles size={16} /> Generate Strategic Options
+        </button>
       </div>
 
       {framingAnalysis && (
-        <div className="card" style={{ marginTop: '20px', borderColor: framingAnalysis.decisionReadinessScore >= 80 ? 'var(--success)' : (framingAnalysis.decisionReadinessScore >= 60 ? 'var(--warning)' : 'var(--error)') }}>
+        <div className="card fade-in" style={{ marginTop: '20px', borderLeft: '4px solid var(--ac)' }}>
           <div className="clabel" style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Framing Analysis Feedback</span>
             <span style={{ fontWeight: 'bold' }}>Readiness Score: {framingAnalysis.decisionReadinessScore}/100</span>
@@ -237,6 +246,6 @@ export default function Step1_Define() {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }

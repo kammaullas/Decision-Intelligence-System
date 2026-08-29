@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
+import { PlusCircle, History, Lightbulb, Target, TrendingUp, CheckCircle, Activity, Bell, AlertTriangle, Building, FileDown, Layers } from 'lucide-react'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -8,6 +9,8 @@ export default function Dashboard() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [reminder, setReminder] = useState(null)
+  const [reminderLoading, setReminderLoading] = useState(true)
 
   useEffect(() => {
     if (!token) return
@@ -25,6 +28,16 @@ export default function Dashboard() {
         setError(err.message)
         setLoading(false)
       })
+
+    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/leadership-reminder`, {
+      headers: { 'X-Auth-Token': token }
+    })
+      .then(res => res.json())
+      .then(d => {
+        if (!d.error) setReminder(d.reminder)
+        setReminderLoading(false)
+      })
+      .catch(() => setReminderLoading(false))
   }, [token])
 
   const handleNewDecision = () => {
@@ -50,26 +63,48 @@ export default function Dashboard() {
           <div style={{ opacity: 0.7 }}>Organizational Decision Performance</div>
         </div>
         <div style={{ display: 'flex', gap: '15px' }}>
-          <button className="btn btn-secondary" onClick={() => navigate('/history')}>View History</button>
-          <button className="btn btn-secondary" onClick={() => navigate('/insights')}>View Insights</button>
-          <button className="btn btn-p" onClick={handleNewDecision}>+ New Decision</button>
+          <button className="btn btn-secondary" onClick={() => navigate('/history')}>
+            <History size={16} /> View History
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/insights')}>
+            <Lightbulb size={16} /> View Insights
+          </button>
+          <button className="btn btn-p" onClick={handleNewDecision}>
+            <PlusCircle size={16} /> New Decision
+          </button>
+        </div>
+      </div>
+
+      {/* Daily Leadership Reminder */}
+      <div className="card fade-in" style={{ marginBottom: '32px', background: 'var(--ac)', color: 'white', border: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '8px', opacity: 0.9 }}>
+          <Bell size={16} /> Today's Leadership Reminder
+        </div>
+        <div style={{ fontSize: '1.2rem', fontWeight: 500, fontStyle: 'italic', lineHeight: 1.5 }}>
+          {reminderLoading ? 'Generating your personalized reminder...' : (reminder || 'Take a moment today to reflect on your strategic priorities.')}
         </div>
       </div>
 
       {/* Row 1: KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+      <div className="fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px', animationDelay: '0.1s' }}>
         <div className="card" style={{ padding: '24px' }}>
-          <div style={{ fontSize: '0.85rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '12px' }}>Total Decisions</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '12px' }}>
+            <Activity size={16} /> Total Decisions
+          </div>
           <div style={{ fontSize: '2.5rem', fontWeight: 700 }}>{data.totalDecisions}</div>
         </div>
         
         <div className="card" style={{ padding: '24px' }}>
-          <div style={{ fontSize: '0.85rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '12px' }}>Outcomes Recorded</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '12px' }}>
+            <CheckCircle size={16} /> Outcomes Recorded
+          </div>
           <div style={{ fontSize: '2.5rem', fontWeight: 700 }}>{data.totalOutcomes}</div>
         </div>
 
         <div className="card" style={{ padding: '24px' }}>
-          <div style={{ fontSize: '0.85rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '12px' }}>Avg Readiness</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '12px' }}>
+            <Target size={16} /> Avg Readiness
+          </div>
           <div style={{ fontSize: '2.5rem', fontWeight: 700, display: 'flex', alignItems: 'baseline', gap: '8px' }}>
             {data.averageReadiness} <span style={{ fontSize: '1.2rem', fontWeight: 400, opacity: 0.5 }}>/ 100</span>
           </div>
@@ -91,8 +126,10 @@ export default function Dashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
         {/* Row 2A: Organization Snapshot */}
-        <div className="card">
-          <h2 style={{ fontSize: '1.2rem', marginTop: 0, marginBottom: '20px' }}>Organization Snapshot</h2>
+        <div className="card fade-in" style={{ animationDelay: '0.2s' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.2rem', marginTop: 0, marginBottom: '20px' }}>
+            <Building size={20} /> Organization Snapshot
+          </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
               <div style={{ fontSize: '0.85rem', opacity: 0.7, textTransform: 'uppercase', marginBottom: '8px' }}>Strongest Area</div>
@@ -106,9 +143,9 @@ export default function Dashboard() {
         </div>
 
         {/* Row 2B: Needs Attention */}
-        <div className="card" style={{ borderLeft: '4px solid var(--warning)' }}>
-          <h2 style={{ fontSize: '1.2rem', marginTop: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            ⚠️ Needs Attention
+        <div className="card fade-in" style={{ borderLeft: '4px solid var(--am)', animationDelay: '0.3s' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.2rem', marginTop: 0, marginBottom: '20px', color: 'var(--am)' }}>
+            <AlertTriangle size={20} /> Needs Attention
           </h2>
           {data.needsAttention && data.needsAttention.length > 0 ? (
             <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -123,8 +160,10 @@ export default function Dashboard() {
       </div>
 
       {/* Row 3: Recent Decisions */}
-      <div className="card">
-        <h2 style={{ fontSize: '1.2rem', marginTop: 0, marginBottom: '20px' }}>Recent Decisions</h2>
+      <div className="card fade-in" style={{ animationDelay: '0.4s' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.2rem', marginTop: 0, marginBottom: '20px' }}>
+          <Layers size={20} /> Recent Decisions
+        </h2>
         {data.recentDecisions && data.recentDecisions.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {data.recentDecisions.map(dec => (
@@ -135,7 +174,7 @@ export default function Dashboard() {
                   gridTemplateColumns: '2fr 1fr 1fr 1fr', 
                   gap: '15px', 
                   padding: '16px', 
-                  background: 'var(--bg-card-hover)', 
+                  background: 'var(--s2)', 
                   borderRadius: '8px',
                   cursor: 'pointer',
                   alignItems: 'center'
@@ -159,10 +198,12 @@ export default function Dashboard() {
                   {dec.status}
                   <button 
                     onClick={(e) => { e.stopPropagation(); window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${dec._id}/report?token=${token}`, '_blank'); }}
-                    style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: 'var(--t1)', fontSize: '0.8rem' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', border: '1px solid var(--b1)', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', color: 'var(--t1)', fontSize: '0.85rem', transition: 'all 0.2s' }}
                     title="Export Executive Report"
+                    onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--ac)'; e.currentTarget.style.color = 'var(--ac)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--b1)'; e.currentTarget.style.color = 'var(--t1)'; }}
                   >
-                    📄 Export
+                    <FileDown size={14} /> Export
                   </button>
                 </div>
               </div>

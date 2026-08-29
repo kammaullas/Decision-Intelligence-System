@@ -29,6 +29,8 @@ export const useStore = create((set) => ({
   result: null,
   extractedData: null,
   framingAnalysis: null,
+  executiveJudgment: null,
+  decisionReflection: null,
   decisionHistory: [],
   orgMetrics: null,
   orgInsights: null,
@@ -121,6 +123,8 @@ export const useStore = create((set) => ({
   setResult: (result) => set({ result }),
   setExtractedData: (data) => set({ extractedData: data }),
   setFramingAnalysis: (data) => set({ framingAnalysis: data }),
+  setExecutiveJudgment: (data) => set({ executiveJudgment: data }),
+  setDecisionReflection: (data) => set({ decisionReflection: data }),
   setOrgMetrics: (data) => set({ orgMetrics: data }),
   setOrgInsights: (data) => set({ orgInsights: data }),
   
@@ -148,6 +152,8 @@ export const useStore = create((set) => ({
     result: null,
     extractedData: null,
     framingAnalysis: null,
+    executiveJudgment: null,
+    decisionReflection: null,
     currentStep: 1
   }),
 
@@ -165,7 +171,9 @@ export const useStore = create((set) => ({
       options: [],
       result: null,
       extractedData: null,
-      framingAnalysis: null
+      framingAnalysis: null,
+      executiveJudgment: null,
+      decisionReflection: null
     });
   }
 }));

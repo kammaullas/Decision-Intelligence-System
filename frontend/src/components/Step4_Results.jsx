@@ -1,15 +1,93 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useStore } from '../store'
+import html2pdf from 'html2pdf.js'
+import ExecutiveReport from './ExecutiveReport'
+import { CheckCircle, Download, RotateCcw, FileText, ChevronRight } from 'lucide-react'
 
 export default function Step4_Results() {
   const store = useStore()
-  const { title, result, criteria, resetApp, extractedData, framingAnalysis } = store
+  const reportRef = useRef(null)
+  const { title, result, criteria, resetApp, extractedData, framingAnalysis, token, setExecutiveJudgment } = store
   const [activeTab, setActiveTab] = useState(0)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [pdfStatusMessage, setPdfStatusMessage] = useState('')
+  
+  // Judgment State
+  const [isJudgmentConfirmed, setIsJudgmentConfirmed] = useState(false)
+  const [disagrees, setDisagrees] = useState(null)
+  const [judgmentReason, setJudgmentReason] = useState('Experience')
+  const [judgmentExplanation, setJudgmentExplanation] = useState('')
+  const [isSubmittingJudgment, setIsSubmittingJudgment] = useState(false)
+  const [judgmentError, setJudgmentError] = useState('')
+
+  // Reflection State
+  const [isReflectionVisible, setIsReflectionVisible] = useState(false);
+  const [reflectionDecisionTaken, setReflectionDecisionTaken] = useState('Yes');
+  const [reflectionConfidence, setReflectionConfidence] = useState(80);
+  const [reflectionBiggestConcern, setReflectionBiggestConcern] = useState('');
+  const [reflectionExpectedOutcome, setReflectionExpectedOutcome] = useState('');
+  const [reflectionAssumptions, setReflectionAssumptions] = useState([]);
+  const [isSubmittingReflection, setIsSubmittingReflection] = useState(false);
+  const [reflectionError, setReflectionError] = useState('');
+
+  const submitReflection = async () => {
+    setIsSubmittingReflection(true);
+    setReflectionError('');
+    try {
+      const payload = {
+        decisionTaken: reflectionDecisionTaken,
+        confidence: reflectionConfidence,
+        biggestConcern: reflectionBiggestConcern,
+        expectedOutcome: reflectionExpectedOutcome,
+        assumptionsConcerned: reflectionAssumptions
+      };
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/reflection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      
+      store.setDecisionReflection(payload);
+      resetApp(); // Go to dashboard
+    } catch (e) {
+      setReflectionError(e.message);
+    } finally {
+      setIsSubmittingReflection(false);
+    }
+  };
+
+  const submitJudgment = async () => {
+    if (disagrees === null) {
+      setJudgmentError('Please indicate whether you disagree with the recommendation.');
+      return;
+    }
+    setIsSubmittingJudgment(true);
+    setJudgmentError('');
+    try {
+      const payload = { disagrees, reason: disagrees ? judgmentReason : null, explanation: disagrees ? judgmentExplanation : "" };
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/judgment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setExecutiveJudgment(payload);
+      setIsJudgmentConfirmed(true);
+    } catch (e) {
+      setJudgmentError(e.message);
+    } finally {
+      setIsSubmittingJudgment(false);
+    }
+  };
   
   // Simulation weights
   const [simWeights, setSimWeights] = useState({ ...criteria })
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSimWeights({ ...criteria })
   }, [criteria])
 
@@ -49,8 +127,42 @@ export default function Step4_Results() {
 
   const ckeys = Object.keys(criteria)
 
-  const downloadReport = () => {
-    window.print() // simplified for this migration
+  const downloadReport = async () => {
+    if (!reportRef.current) return;
+    
+    setIsGeneratingPDF(true);
+    setPdfStatusMessage('Preparing Executive Report...');
+
+    try {
+      await document.fonts.ready;
+      // Sanitize title for filename
+      const safeTitle = (title || 'Analysis').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+      const filename = `Executive_Decision_Report_${safeTitle}.pdf`;
+
+      const opt = {
+        margin:       0,
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 1.0 },
+        html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794 },
+        jsPDF:        { unit: 'px', format: [794, 1122], orientation: 'portrait' },
+        pagebreak:    { mode: ['css', 'legacy'] }
+      };
+
+      await html2pdf().set(opt).from(reportRef.current).save();
+      
+      setPdfStatusMessage('Report downloaded');
+      setTimeout(() => {
+        setIsGeneratingPDF(false);
+        setPdfStatusMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error(error);
+      setPdfStatusMessage('Unable to generate the report. Please try again.');
+      setTimeout(() => {
+        setIsGeneratingPDF(false);
+        setPdfStatusMessage('');
+      }, 3000);
+    }
   }
 
   // --- Executive Decision Summary Calculations ---
@@ -88,11 +200,13 @@ export default function Step4_Results() {
     evidenceScore = (categoriesPresent / 8) * 100;
   }
   
+   
   let optionSeparationScore = 0;
+   
   let gap = 0;
   if (displayScores.length > 1) {
     gap = displayScores[0].weightedScore - displayScores[1].weightedScore;
-    optionSeparationScore = Math.min(100, Math.max(0, (gap / 1.5) * 100));
+    optionSeparationScore = Math.min((gap / (maxScore || 1)) * 100, 100);
   } else {
     optionSeparationScore = 100;
     gap = 100; // arbitrary large gap
@@ -138,6 +252,7 @@ export default function Step4_Results() {
       <div className="hint" style={{ marginBottom: '24px' }}>Evaluation complete.</div>
       
       {/* --- Executive Decision Summary --- */}
+      {isJudgmentConfirmed && (
       <div className="card" style={{ padding: '24px', marginBottom: '32px', border: '1px solid var(--border)' }}>
         <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.4rem' }}>Executive Decision Summary</h2>
         
@@ -205,6 +320,7 @@ export default function Step4_Results() {
           </div>
         )}
       </div>
+      )}
 
       <div className="card" style={{ marginBottom: '32px' }}>
         <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.2rem' }}>Detailed Analysis</h2>
@@ -322,7 +438,7 @@ export default function Step4_Results() {
       
       <div className="tabs">
         <div className="tabnav">
-          {['Risks', 'Missing info', 'Bias alerts', 'Recommendation', 'Next steps'].map((tab, i) => (
+          {['Risks', 'Missing info', 'Bias alerts', 'Recommendation', 'Next steps', 'Executive Coaching'].map((tab, i) => (
             <button 
               key={i} 
               className={`tabbt ${activeTab === i ? 'on' : ''}`}
@@ -334,6 +450,7 @@ export default function Step4_Results() {
         </div>
         
         <div className={`tabpn ${activeTab === 0 ? 'on' : ''}`}>
+          <div className="print-only">Risks</div>
           {(result.risks || []).map((rk, i) => (
             <div className="rcard" key={i}>
               <h4>{rk.option}</h4>
@@ -347,12 +464,14 @@ export default function Step4_Results() {
         </div>
         
         <div className={`tabpn ${activeTab === 1 ? 'on' : ''}`}>
+          <div className="print-only">Missing Information</div>
           <ul className="ilist">
             {(result.missingInfo || []).map((m, i) => <li key={i}>{m}</li>)}
           </ul>
         </div>
         
         <div className={`tabpn ${activeTab === 2 ? 'on' : ''}`}>
+          <div className="print-only">Bias Alerts</div>
           <table className="btbl">
             <thead>
               <tr><th>Bias</th><th>Description</th><th>Impact</th></tr>
@@ -366,20 +485,204 @@ export default function Step4_Results() {
         </div>
         
         <div className={`tabpn ${activeTab === 3 ? 'on' : ''}`}>
+          <div className="print-only">Recommendation</div>
           <div className="recbox">{result.recommendation}</div>
         </div>
         
         <div className={`tabpn ${activeTab === 4 ? 'on' : ''}`}>
+          <div className="print-only">Next Steps</div>
           <ol className="nslist">
             {(result.nextSteps || []).map((s, i) => <li key={i}>{s}</li>)}
           </ol>
         </div>
+
+        <div className={`tabpn ${activeTab === 5 ? 'on' : ''}`}>
+          <div className="print-only">Executive Coaching</div>
+          {result.coaching && result.coaching.length > 0 ? (
+            <ul className="ilist" style={{ borderLeft: '4px solid var(--ac)', paddingLeft: '20px', background: 'var(--bg-card-hover)', padding: '20px 20px 20px 40px', borderRadius: '8px' }}>
+              {result.coaching.map((point, i) => (
+                <li key={i} style={{ marginBottom: '12px', fontSize: '1rem', lineHeight: '1.5' }}>{point}</li>
+              ))}
+            </ul>
+          ) : (
+            <div style={{ padding: '20px', fontStyle: 'italic', opacity: 0.7 }}>
+              No personalized coaching points available for this decision.
+            </div>
+          )}
+        </div>
       </div>
       
-      <div className="brow">
-        <button className="btn btn-g" onClick={() => resetApp()}>Start over</button>
-        <button className="btn btn-gold" onClick={downloadReport}>Download report</button>
+      {!isJudgmentConfirmed && (
+        <div className="card" style={{ marginBottom: '32px', border: '1px solid var(--ac)' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.2rem', color: 'var(--ac)' }}>Executive Judgment Check</h2>
+          <div style={{ marginBottom: '20px', fontSize: '1.05rem' }}>Does your instinct disagree with this recommendation?</div>
+          
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+            <button 
+              className={`btn ${disagrees === true ? 'btn-gold' : 'btn-g'}`} 
+              onClick={() => setDisagrees(true)}
+            >
+              YES
+            </button>
+            <button 
+              className={`btn ${disagrees === false ? 'btn-gold' : 'btn-g'}`} 
+              onClick={() => { setDisagrees(false); setJudgmentReason('Experience'); setJudgmentExplanation(''); }}
+            >
+              NO
+            </button>
+          </div>
+
+          {disagrees === true && (
+            <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label className="clabel" style={{ marginBottom: '8px', display: 'block' }}>Why?</label>
+                <select className="inp" value={judgmentReason} onChange={e => setJudgmentReason(e.target.value)}>
+                  <option value="Experience">Experience</option>
+                  <option value="Political reality">Political reality</option>
+                  <option value="Market intuition">Market intuition</option>
+                  <option value="Ethics">Ethics</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="clabel" style={{ marginBottom: '8px', display: 'block' }}>Explanation (Optional)</label>
+                <textarea 
+                  className="inp" 
+                  rows="3" 
+                  placeholder="Elaborate on your judgment..."
+                  value={judgmentExplanation}
+                  onChange={e => setJudgmentExplanation(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {judgmentError && <div className="err" style={{ marginTop: '16px' }}>{judgmentError}</div>}
+          
+          <div style={{ marginTop: '24px' }}>
+            <button 
+              className="btn btn-gold" 
+              onClick={submitJudgment} 
+              disabled={isSubmittingJudgment || disagrees === null}
+            >
+              {isSubmittingJudgment ? 'Saving...' : 'Confirm & View Final Report'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isJudgmentConfirmed && !isReflectionVisible && (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+          <CheckCircle size={24} style={{ color: 'var(--ac)' }} /> Decision Evaluation
+        </h1>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-g" onClick={() => resetApp()} disabled={isGeneratingPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RefreshCw size={16} /> Start over</button>
+          <button className="btn btn-gold" onClick={downloadReport} disabled={isGeneratingPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Download size={16} /> {isGeneratingPDF ? 'Generating...' : 'Download report'}
+          </button>
+          <button className="btn btn-gold" onClick={() => setIsReflectionVisible(true)} disabled={isGeneratingPDF} style={{ background: 'var(--ac)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ArrowRight size={16} /> Finalize Decision
+          </button>
+        </div>
       </div>
+      )}
+
+      {isReflectionVisible && (
+        <div className="card" style={{ marginBottom: '32px', border: '1px solid var(--ac)' }}>
+          <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.2rem', color: 'var(--ac)', display: 'flex', alignItems: 'center', gap: '8px' }}><BrainCircuit size={20} /> Decision Reflection</h2>
+          <p style={{ marginBottom: '24px', opacity: 0.8 }}>Before you finalize, capture your mindset for future outcome tracking.</p>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label className="clabel" style={{ display: 'block', marginBottom: '8px' }}>Decision Taken?</label>
+            <div style={{ display: 'flex', gap: '15px' }}>
+              {['Yes', 'No', 'Modified'].map(opt => (
+                <button 
+                  key={opt}
+                  className={`btn ${reflectionDecisionTaken === opt ? 'btn-gold' : 'btn-g'}`} 
+                  onClick={() => setReflectionDecisionTaken(opt)}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label className="clabel" style={{ display: 'block', marginBottom: '8px' }}>Confidence: {reflectionConfidence}%</label>
+            <input 
+              type="range" 
+              min="0" max="100" 
+              value={reflectionConfidence} 
+              onChange={e => setReflectionConfidence(Number(e.target.value))} 
+              style={{ width: '100%', maxWidth: '300px', cursor: 'pointer' }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label className="clabel" style={{ display: 'block', marginBottom: '8px' }}>Biggest Concern</label>
+            <textarea 
+              className="inp" rows="2" 
+              placeholder="What are you most worried about?" 
+              value={reflectionBiggestConcern}
+              onChange={e => setReflectionBiggestConcern(e.target.value)}
+            />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label className="clabel" style={{ display: 'block', marginBottom: '8px' }}>Expected Outcome</label>
+            <textarea 
+              className="inp" rows="2" 
+              placeholder="What specific outcome do you expect?" 
+              value={reflectionExpectedOutcome}
+              onChange={e => setReflectionExpectedOutcome(e.target.value)}
+            />
+          </div>
+
+          {framingAnalysis?.hiddenAssumptions && framingAnalysis.hiddenAssumptions.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <label className="clabel" style={{ display: 'block', marginBottom: '8px' }}>Which assumptions are you most concerned about?</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {framingAnalysis.hiddenAssumptions.map((assump, i) => (
+                  <label key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={reflectionAssumptions.includes(assump)}
+                      onChange={e => {
+                        if (e.target.checked) setReflectionAssumptions([...reflectionAssumptions, assump]);
+                        else setReflectionAssumptions(reflectionAssumptions.filter(a => a !== assump));
+                      }}
+                      style={{ marginTop: '4px' }}
+                    />
+                    <span style={{ fontSize: '0.9rem', lineHeight: '1.4' }}>{assump}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {reflectionError && <div className="err" style={{ marginTop: '16px' }}>{reflectionError}</div>}
+          
+          <div style={{ marginTop: '24px', display: 'flex', gap: '15px' }}>
+            <button className="btn btn-g" onClick={() => setIsReflectionVisible(false)} disabled={isSubmittingReflection}>Back</button>
+            <button className="btn btn-gold" onClick={submitReflection} disabled={isSubmittingReflection} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Save size={16} /> {isSubmittingReflection ? 'Saving...' : 'Save & Exit'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ExecutiveReport 
+        ref={reportRef}
+        displayScores={displayScores}
+        bestOption={bestOption}
+        readinessDisplay={readinessDisplay}
+        readinessColor={readinessColor}
+        confidence={confidence}
+        confColor={confColor}
+        eo={eo}
+        whyWon={result.insights?.whyRecommendationWon || []}
+      />
     </>
   )
 }

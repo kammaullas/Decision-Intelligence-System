@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
+import { ArrowLeft, FileDown, PlusCircle, LayoutList, Target, Lightbulb, Clock, CheckCircle, Upload, PlayCircle, History, Sparkles, AlertTriangle, Briefcase, Camera } from 'lucide-react'
 
 export default function DecisionDetail() {
   const { id } = useParams()
@@ -143,44 +144,55 @@ export default function DecisionDetail() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>{decision.title}</h1>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={() => navigate('/history')}>&larr; Back</button>
-          <button className="btn btn-secondary" onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}/report?token=${token}`, '_blank')} style={{ borderColor: 'var(--ac)', color: 'var(--ac)' }}>Export Executive Report</button>
-          <button className="btn btn-p" onClick={() => setShowOutcomeForm(!showOutcomeForm)}>Record Outcome</button>
+      <div className="fade-in" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: 0 }}>
+          <Briefcase size={32} style={{ color: 'var(--ac)' }} /> 
+          <span style={{ lineHeight: 1.2 }}>{decision.title}</span>
+        </h1>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={() => navigate('/history')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}>
+            <ArrowLeft size={18} /> Back
+          </button>
+          <button className="btn btn-secondary" onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}/report?token=${token}`, '_blank')} style={{ borderColor: 'var(--ac)', color: 'var(--ac)', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}>
+            <FileDown size={18} /> Export Executive Report
+          </button>
+          <button className="btn btn-p" onClick={() => setShowOutcomeForm(!showOutcomeForm)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}>
+            <PlusCircle size={18} /> Record Outcome
+          </button>
         </div>
       </div>
 
       {showOutcomeForm && (
-        <div className="card" style={{ marginBottom: '20px', border: '2px solid var(--ac)' }}>
-          <div className="clabel" style={{ color: 'var(--ac)' }}>Record Outcome & Evaluate</div>
-          <div className="inp-group">
-            <label>Actual Metrics (Revenue, Growth, etc.)</label>
-            <textarea className="inp" placeholder="e.g. Q1 Revenue was $120k vs $150k expected" value={metrics} onChange={e => setMetrics(e.target.value)} rows={2} />
+        <div className="card fade-in" style={{ marginBottom: '32px', border: '1px solid var(--ac)', background: 'var(--s2)' }}>
+          <div className="clabel" style={{ color: 'var(--ac)', fontSize: '1rem', marginBottom: '20px' }}>Record Outcome & Evaluate</div>
+          <div className="inp-group" style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '0.9rem', marginBottom: '8px' }}>Actual Metrics (Revenue, Growth, etc.)</label>
+            <textarea className="inp" placeholder="e.g. Q1 Revenue was $120k vs $150k expected" value={metrics} onChange={e => setMetrics(e.target.value)} rows={3} style={{ fontSize: '1rem' }} />
           </div>
-          <div className="inp-group">
-            <label>Observations</label>
-            <textarea className="inp" placeholder="What happened after implementation?" value={obs} onChange={e => setObs(e.target.value)} rows={3} />
+          <div className="inp-group" style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '0.9rem', marginBottom: '8px' }}>Observations</label>
+            <textarea className="inp" placeholder="What happened after implementation?" value={obs} onChange={e => setObs(e.target.value)} rows={4} style={{ fontSize: '1rem' }} />
           </div>
-          <div className="inp-group">
-            <label>Upload Outcome Report (PDF/TXT)</label>
-            <input type="file" className="inp" accept=".pdf,.txt" ref={fileInputRef} onChange={handleFileUpload} />
-            {uploadStatus && <div style={{ fontSize: '0.8rem', marginTop: '5px', color: 'var(--ac)' }}>{uploadStatus}</div>}
+          <div className="inp-group" style={{ marginBottom: '24px' }}>
+            <label style={{ fontSize: '0.9rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}><Upload size={16} /> Upload Outcome Report (PDF/TXT)</label>
+            <input type="file" className="inp" accept=".pdf,.txt" ref={fileInputRef} onChange={handleFileUpload} style={{ padding: '12px' }} />
+            {uploadStatus && <div style={{ fontSize: '0.85rem', marginTop: '8px', color: 'var(--ac)', fontWeight: 500 }}>{uploadStatus}</div>}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-            <button className="btn btn-secondary" onClick={() => setShowOutcomeForm(false)}>Cancel</button>
-            <button className="btn btn-p" onClick={handleSubmitOutcome}>Evaluate Outcome</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <button className="btn btn-secondary" onClick={() => setShowOutcomeForm(false)} style={{ padding: '10px 20px' }}>Cancel</button>
+            <button className="btn btn-p" onClick={handleSubmitOutcome} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}>
+              <CheckCircle size={18} /> Evaluate Outcome
+            </button>
           </div>
         </div>
       )}
       
       {/* --- NEW EXECUTIVE REVIEW CARD --- */}
-      <div className="card" style={{ marginBottom: '32px', padding: '24px', border: '2px solid var(--border)' }}>
+      <div className="card" style={{ marginBottom: '32px', padding: '24px', border: '2px solid var(--b1)' }}>
         
         {/* Top Summary Row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '24px' }}>
-          <div style={{ padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
+          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
             <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Readiness Score</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 700, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
               {readinessScore} <span style={{fontSize: '0.9rem', opacity: 0.5, fontWeight: 400}}>/ 100</span>
@@ -188,7 +200,7 @@ export default function DecisionDetail() {
             <div style={{ fontSize: '0.85rem', color: rsColor }}>{rsText}</div>
           </div>
           
-          <div style={{ padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
+          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
             <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Decision Quality</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 700, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
               {latestOutcome ? qualityScore : '--'} <span style={{fontSize: '0.9rem', opacity: 0.5, fontWeight: 400}}>/ 100</span>
@@ -196,28 +208,30 @@ export default function DecisionDetail() {
             <div style={{ fontSize: '0.85rem', color: qsColor }}>{latestOutcome ? qsText : "Pending"}</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
+          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
             <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Outcome Count</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 700 }}>{outcomes.length}</div>
             <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>{outcomes.length === 1 ? '1 Outcome Recorded' : `${outcomes.length} Outcome Reviews`}</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
+          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
             <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Outcome Confidence</div>
             <div style={{ fontSize: '1.6rem', fontWeight: 700 }}>{latestOutcome ? `${oc}%` : '--'}</div>
             <div style={{ fontSize: '0.85rem', color: latestOutcome ? ocColor : 'inherit' }}>{latestOutcome ? ocText : "Pending"}</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
+          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
             <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Status</div>
             <div style={{ fontSize: '1.2rem', fontWeight: 600, marginTop: '5px' }}>{decision.status || 'Evaluated'}</div>
           </div>
         </div>
 
         {/* Recommended Option Section */}
-        <div style={{ padding: '24px', background: 'var(--p-dark)', color: 'white', borderRadius: '8px', marginBottom: '24px' }}>
-          <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Recommended Strategy</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, lineHeight: 1.3, color: 'var(--ac)', marginBottom: '16px' }}>{recOption}</div>
+        <div className="fade-in" style={{ padding: '32px', background: 'var(--s2)', borderRadius: '12px', marginBottom: '32px', border: '1px solid var(--b1)', borderLeft: '4px solid var(--ac)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', opacity: 0.8, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+            <Sparkles size={18} style={{ color: 'var(--ac)' }} /> Recommended Strategy
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1.3, color: 'var(--ac)', marginBottom: '20px' }}>{recOption}</div>
           
           {whyWon.length > 0 && (
             <div>
@@ -233,52 +247,13 @@ export default function DecisionDetail() {
           )}
         </div>
 
-        {/* Outcome Summary Section */}
-        {latestOutcome && (
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>Outcome Review</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              {[
-                { label: 'Decision Quality', val: latestOutcome.decisionQualityScore },
-                { label: 'Assumption Accuracy', val: latestOutcome.assumptionAccuracy },
-                { label: 'Evidence Quality', val: latestOutcome.evidenceQuality },
-                { label: 'Execution Effectiveness', val: latestOutcome.executionEffectiveness }
-              ].map(bar => (
-                <div key={bar.label} style={{ background: 'var(--bg-card-hover)', padding: '12px', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 500 }}>
-                    <span>{bar.label}</span>
-                    <span>{bar.val}</span>
-                  </div>
-                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-app)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{ 
-                      width: `${bar.val}%`, 
-                      height: '100%', 
-                      background: bar.val >= 80 ? 'var(--success)' : bar.val >= 60 ? 'var(--warning)' : 'var(--error)' 
-                    }}></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Key Lessons Learned */}
-        {latestOutcome?.evaluation?.lessonsLearned?.length > 0 && (
-          <div style={{ background: 'var(--bg-card-hover)', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
-            <div style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: 'var(--ac)' }}>💡</span> Top Lessons Learned
-            </div>
-            <ul style={{ margin: 0, paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {latestOutcome.evaluation.lessonsLearned.slice(0,3).map((lesson, idx) => (
-                <li key={idx} style={{ fontSize: '0.95rem' }}>{lesson}</li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         {/* Executive Snapshot */}
-        <div style={{ background: 'var(--bg-app)', padding: '20px', borderRadius: '8px', borderLeft: '4px solid var(--t1)' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>Executive Snapshot</div>
+        <div style={{ background: 'var(--s2)', padding: '20px', borderRadius: '8px', borderLeft: '4px solid var(--t1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>
+            <Camera size={20} /> Executive Snapshot
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
             <div>
               <div style={{ fontSize: '0.85rem', opacity: 0.7, textTransform: 'uppercase', marginBottom: '4px' }}>Recommendation</div>
@@ -302,8 +277,10 @@ export default function DecisionDetail() {
 
       {/* Outcome Timeline */}
       {outcomes.length > 0 && (
-        <>
-          <h2 style={{ marginTop: '40px', marginBottom: '20px' }}>Outcome Timeline</h2>
+        <div className="fade-in" style={{ animationDelay: '0.2s' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '40px', marginBottom: '20px' }}>
+            <History size={24} /> Outcome Timeline
+          </h2>
           {outcomes.map((o, index) => {
             const healthAvg = (o.decisionQualityScore + o.executionEffectiveness) / 2;
             let badgeText = "Needs Review";
@@ -341,17 +318,18 @@ export default function DecisionDetail() {
                   ].map(bar => {
                     const interp = getInterpretation(bar.val);
                     return (
-                      <div key={bar.label} style={{ background: 'var(--bg-card-hover)', padding: '16px', borderRadius: '8px' }}>
+                      <div key={bar.label} style={{ background: 'var(--s2)', padding: '16px', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.95rem', fontWeight: 500 }}>
                           <span>{bar.label}</span>
                           <span style={{ color: interp.color, fontWeight: 600 }}>{bar.val} <span style={{fontSize: '0.8rem', opacity: 0.7, fontWeight: 400}}>({interp.text})</span></span>
                         </div>
-                        <div style={{ width: '100%', height: '8px', background: 'var(--bg-app)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ width: '100%', height: '8px', background: 'var(--b1)', borderRadius: '4px', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
                           <div style={{ 
                             width: `${bar.val}%`, 
                             height: '100%', 
                             background: interp.color,
-                            transition: 'width 1s ease-in-out'
+                            transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                            borderRadius: '4px'
                           }}></div>
                         </div>
                       </div>
@@ -363,7 +341,7 @@ export default function DecisionDetail() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                     
                     {/* What We Got Right / Wrong Card */}
-                    <div style={{ background: 'var(--bg-app)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <div style={{ background: 'var(--bg)', padding: '20px', borderRadius: '8px', border: '1px solid var(--b1)' }}>
                       <div style={{ marginBottom: '16px' }}>
                         <div style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '12px', color: 'var(--success)' }}>What We Got Right</div>
                         <ul style={{ margin: 0, paddingLeft: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -373,7 +351,7 @@ export default function DecisionDetail() {
                           }
                         </ul>
                       </div>
-                      <div style={{ paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                      <div style={{ paddingTop: '16px', borderTop: '1px solid var(--b1)' }}>
                         <div style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '12px', color: 'var(--error)' }}>What We Got Wrong</div>
                         <ul style={{ margin: 0, paddingLeft: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {(o.evaluation.incorrectAssumptions || []).length > 0 ? 
@@ -386,7 +364,7 @@ export default function DecisionDetail() {
 
                     {/* Lessons Learned Card */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                      <div style={{ background: 'var(--bg-app)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border)', height: '100%' }}>
+                      <div style={{ background: 'var(--bg)', padding: '20px', borderRadius: '8px', border: '1px solid var(--b1)', height: '100%' }}>
                         <div style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ color: 'var(--ac)' }}>💡</span> Key Lessons Learned
                         </div>
@@ -404,7 +382,7 @@ export default function DecisionDetail() {
               </div>
             );
           })}
-        </>
+        </div>
       )}
 
       {/* Framing Analysis */}

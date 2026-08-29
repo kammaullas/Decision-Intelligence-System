@@ -21,6 +21,9 @@ mongoose.connect(MONGODB_URI)
 
 const Decision = require('./models/Decision');
 const Outcome = require('./models/Outcome');
+const User = require('./models/User');
+const DecisionDNA = require('./models/DecisionDNA');
+const { buildExecutiveProfileContext } = require('./utils/promptEngine');
 
 // ================================================================
 //  CONFIGURATION
@@ -29,34 +32,82 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD || "srm123";
 
 const groq = new Groq({ apiKey: GROQ_API_KEY });
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_MODEL = "openai/gpt-oss-20b";
 
-// In-memory token store (resets on server restart — fine for MVP)
-const valid_tokens = new Set();
+// In-memory token store (token -> userId)
+const valid_tokens = new Map();
 // ================================================================
 
 // -- Auth helpers ----------------------------------------------------
+const DIA_SYSTEM_PROMPT = `You are DIA (Decision Intelligence Assistant), an executive decision intelligence system developed for leaders participating in the Decision Intelligence for Leaders (DIL) programme.
+
+Your purpose is not to make decisions on behalf of executives, but to improve the quality of their decision-making.
+
+Always:
+- Structure complex problems clearly.
+- When a decision requires alternatives, generate multiple mutually exclusive options.
+- Identify assumptions, uncertainties, and missing information.
+- When evaluating alternatives, use the supplied decision criteria.
+- Explain the rationale behind recommendations.
+- Encourage executive judgment rather than replacing it.
+- Personalise coaching based on the executive's Decision DNA.
+  * Decision DNA is a coaching lens, not a recommendation rule.
+  * Use it to personalize how you frame questions, trade-offs, risks, blind spots, and coaching.
+  * Do NOT automatically determine which option is recommended based on Decision DNA (e.g., high risk tolerance must not automatically cause a preference for high-risk options).
+  * Do NOT override supplied evidence, decision criteria, constraints, or explicit executive preferences.
+  * Treat Decision DNA as one contextual input among several.
+  * Surface potential tendencies as possibilities rather than facts.
+  * Explicitly flag when a Decision DNA tendency may itself create a cognitive or decision risk.
+- Highlight possible cognitive biases, stakeholder blind spots, and implementation risks.
+- Present recommendations in a balanced, transparent, and professional manner.
+- Explicitly communicate uncertainty when information is incomplete.
+
+Never present a recommendation as the only correct answer.
+
+When evidence is incomplete, explicitly state the limitations and identify information that could improve the decision.
+
+Maintain an executive tone suitable for CEOs, CXOs, senior managers, government leaders, and board members.
+
+This analysis supports executive decision-making.
+The final decision remains with the executive.
+Recommendations depend upon the quality and completeness of available information.`;
+
+
 function checkToken(req) {
     const token = req.header('X-Auth-Token') || req.query.token || "";
     return valid_tokens.has(token);
 }
 
 function requireAuth(req, res, next) {
-    if (!checkToken(req)) {
+    const token = req.header('X-Auth-Token') || req.query.token || "";
+    const userId = valid_tokens.get(token);
+    if (!userId) {
         return res.status(401).json({ error: "Unauthorized. Please login." });
     }
+    req.userId = userId;
     next();
 }
 
 // -- Login -----------------------------------------------------------
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
+    const email = (req.body.email || "").trim().toLowerCase();
     const password = (req.body.password || "").trim();
+
+    if (!email) {
+        return res.status(400).json({ success: false, error: "Email is required" });
+    }
+
     if (password === ACCESS_PASSWORD || password === "demo") {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ success: false, error: "Participant not found" });
+        }
+
         const token = crypto.randomBytes(32).toString('hex');
-        valid_tokens.add(token);
+        valid_tokens.set(token, user._id.toString());
         return res.json({ success: true, token: token });
     }
-    return res.status(401).json({ success: false, error: "Invalid password" });
+    return res.status(401).json({ success: false, error: "Invalid credentials" });
 });
 
 // -- Check auth ------------------------------------------------------
@@ -64,18 +115,69 @@ app.get('/api/check-auth', (req, res) => {
     res.json({ authenticated: checkToken(req) });
 });
 
+// -- Profile API -----------------------------------------------------
+app.get('/api/profile/decision-dna', requireAuth, async (req, res) => {
+    try {
+        const token = req.header('X-Auth-Token') || req.query.token || "";
+        const userId = valid_tokens.get(token);
+        
+        if (!userId) {
+            return res.status(401).json({ error: "Invalid session." });
+        }
+
+        const user = await User.findById(userId).select('name designation organisation industry email batch -_id');
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        const dna = await DecisionDNA.findOne({ user: userId }).select('decisionStyle strategicThinking analyticalThinking innovationOrientation stakeholderOrientation riskTolerance executionUrgency ethicalOrientation consensusOrientation strengths blindSpots coachingAdvice -_id');
+
+        res.json({
+            user: user,
+            decisionDNA: dna || null
+        });
+    } catch (e) {
+        console.error(`ERROR /api/profile/decision-dna: ${e.message}`);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // -- Groq call -------------------------------------------------------
-async function askGroq(prompt) {
+async function getExecutiveProfile(userId) {
+    if (!userId) return "";
+    try {
+        const user = await User.findById(userId);
+        const dna = await DecisionDNA.findOne({ user: userId });
+        // NOTE: If dna is null (not assessed), this is a valid state.
+        // buildExecutiveProfileContext handles it gracefully.
+        return buildExecutiveProfileContext(user, dna);
+    } catch (e) {
+        // Log the actual server-side error for diagnostics, but do not expose it
+        console.error(`[DB Error] getExecutiveProfile failed for userId ${userId}:`, e.message);
+        // Gracefully fallback to non-personalized AI behavior
+        return "";
+    }
+}
+
+async function askGroq(prompt, profileContext = "") {
     if (!GROQ_API_KEY || GROQ_API_KEY === "PASTE_GROQ_KEY_HERE") {
         throw new Error("GROQ_API_KEY not set in server.js or .env");
     }
 
     try {
+        let systemContent = DIA_SYSTEM_PROMPT;
+        if (profileContext) {
+            systemContent += "\n\n" + profileContext;
+        }
+
         const completion = await groq.chat.completions.create({
-            messages: [{ role: "user", content: prompt }],
+            messages: [
+                { role: "system", content: systemContent },
+                { role: "user", content: prompt }
+            ],
             model: GROQ_MODEL,
             temperature: 0.7,
-            max_tokens: 3000
+            max_tokens: 4000
         });
         return completion.choices[0].message.content;
     } catch (err) {
@@ -85,23 +187,86 @@ async function askGroq(prompt) {
 
 function toJson(text) {
     let cleanText = text.trim();
-    // Remove markdown code blocks
-    cleanText = cleanText.replace(/^```(?:json)?\s*/i, '');
-    cleanText = cleanText.replace(/\s*```$/i, '');
+    
+    // Strip <think>...</think> reasoning blocks output by some models
+    cleanText = cleanText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
     try {
         return JSON.parse(cleanText);
-    } catch (e) {
-        // Fallback: try to extract JSON array or object using regex
-        const match = cleanText.match(/(\[[\s\S]*?\]|\{[\s\S]*?\})/);
-        if (match) {
-            try {
-                return JSON.parse(match[1]);
-            } catch (innerError) {
-                 throw new Error("Could not parse JSON from response after regex extraction");
+    } catch (e) {}
+
+    const codeBlockMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (codeBlockMatch) {
+        try {
+            return JSON.parse(codeBlockMatch[1].trim());
+        } catch (e) {}
+    }
+
+    const firstBrace = cleanText.indexOf('{');
+    const firstBracket = cleanText.indexOf('[');
+    
+    let startChar = '';
+    let endChar = '';
+    let startIndex = -1;
+    
+    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+        startChar = '{';
+        endChar = '}';
+        startIndex = firstBrace;
+    } else if (firstBracket !== -1) {
+        startChar = '[';
+        endChar = ']';
+        startIndex = firstBracket;
+    }
+
+    if (startIndex !== -1) {
+        let depth = 0;
+        let inString = false;
+        let escapeNext = false;
+        let endIndex = -1;
+
+        for (let i = startIndex; i < cleanText.length; i++) {
+            const char = cleanText[i];
+            
+            if (escapeNext) {
+                escapeNext = false;
+                continue;
+            }
+
+            if (char === '\\') {
+                escapeNext = true;
+                continue;
+            }
+
+            if (char === '"') {
+                inString = !inString;
+                continue;
+            }
+
+            if (!inString) {
+                if (char === startChar) {
+                    depth++;
+                } else if (char === endChar) {
+                    depth--;
+                    if (depth === 0) {
+                        endIndex = i;
+                        break;
+                    }
+                }
             }
         }
-        throw new Error("Could not parse JSON from response");
+
+        if (endIndex !== -1) {
+            try {
+                return JSON.parse(cleanText.substring(startIndex, endIndex + 1));
+            } catch (e) {
+                console.error("JSON parse error on balanced extraction:", e.message);
+            }
+        }
     }
+
+    console.error("Original text that failed parsing:", text);
+    throw new Error("Could not parse JSON from response after extraction");
 }
 
 // -- Generate Options ------------------------------------------------
@@ -132,10 +297,12 @@ Option types:
 3. Phased or hybrid approach
 4. Alternative (partnership, outsource, or delay)
 
-Return ONLY a JSON array of 4 strings. No markdown. No explanation.
-Example: ["Option 1", "Option 2", "Option 3", "Option 4"]`;
+Return ONLY a JSON array of 4 descriptive strings. No markdown. No explanation.
+Example: ["Launch a completely new flagship product line", "Optimize existing product distribution channels", "Acquire a regional competitor to gain market share", "Form a joint venture with a technology firm"]
+CRITICAL: Do NOT output the example above. Generate 4 completely new options specifically tailored to the DECISION context provided above.`;
 
-        const raw = await askGroq(prompt);
+        const profileContext = await getExecutiveProfile(req.userId);
+        const raw = await askGroq(prompt, profileContext);
         const options = toJson(raw);
         
         if (!Array.isArray(options)) {
@@ -175,7 +342,8 @@ app.post('/api/evaluate', requireAuth, async (req, res) => {
         const ex_scores = ckeys.map(k => `"${k}": 7`).join(', ');
 
         const prompt = `You are a strategic decision evaluator.
-Return ONLY valid raw JSON. No markdown. No explanation.
+Return ONLY valid raw JSON. No markdown. No explanation. NO SCRATCHPAD.
+CRITICAL: You must begin your response exactly with the character '{' and end with '}'. Do not include any mental reasoning, calculations, or chat text before or after the JSON. Ensure all strings are properly escaped, there are NO trailing commas, and the JSON is perfectly well-formed and closed.
 
 DECISION: ${decision}
 INDUSTRY: ${industry}
@@ -216,13 +384,16 @@ Return this exact JSON structure:
   "biases": [{"bias": "name", "description": "text", "impact": "text"}],
   "recommendation": "text",
   "recommendedNextAction": "text",
-  "nextSteps": ["step1", "step2", "step3", "step4"]
+  "nextSteps": ["step1", "step2", "step3", "step4"],
+  "coaching": ["point1", "point2", "point3"]
 }
 
 Score each option 1-10 per criterion. weightedScore = sum(score * weight/100). rank 1 = best.
-For topRisk, calculate priorityScore = likelihood (1-10) * impact (1-10).`;
+For topRisk, calculate priorityScore = likelihood (1-10) * impact (1-10).
+For "coaching", return up to 6 personalized leadership coaching points based on the executive's Decision DNA, identifying likely biases, strengths, traps, and suggested behaviours. Frame them as possibilities, do not claim psychological certainty.`;
 
-        const raw = await askGroq(prompt);
+        const profileContext = await getExecutiveProfile(req.userId);
+        const raw = await askGroq(prompt, profileContext);
         const result = toJson(raw);
         
         if (!result.scores) {
@@ -232,6 +403,7 @@ For topRisk, calculate priorityScore = likelihood (1-10) * impact (1-10).`;
         const recommendedOption = result.insights?.bestOption || result.scores[0]?.option || null;
 
         const savedDecision = new Decision({
+            userId: req.userId,
             title: decision,
             description: description || "No description provided",
             industry: industry,
@@ -428,7 +600,8 @@ Time Horizon: ${horizon}
 Stakes: ${stakes}
 `;
 
-        const raw = await askGroq(prompt);
+        const profileContext = await getExecutiveProfile(req.userId);
+        const raw = await askGroq(prompt, profileContext);
         const result = toJson(raw);
         
         res.json(result);
@@ -441,10 +614,23 @@ Stakes: ${stakes}
 // -- Decisions API ---------------------------------------------------
 app.get('/api/decisions', requireAuth, async (req, res) => {
     try {
-        const decisions = await Decision.find()
+        const decisions = await Decision.find({ userId: req.userId })
             .sort({ createdAt: -1 })
             .select('title industry decisionReadinessScore recommendedOption status createdAt');
-        res.json(decisions);
+            
+        const decisionIds = decisions.map(d => d._id);
+        const outcomes = await Outcome.find({ decisionId: { $in: decisionIds } });
+        
+        const results = decisions.map(d => {
+            const out = outcomes.find(o => o.decisionId.toString() === d._id.toString());
+            return {
+                ...d.toObject(),
+                reflection: out?.reflection?.decisionTaken || null,
+                outcomeScore: out?.decisionQualityScore || null
+            };
+        });
+        
+        res.json(results);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -668,7 +854,7 @@ app.post('/api/evaluate-outcome', requireAuth, async (req, res) => {
             return res.status(404).json({ error: "Decision not found" });
         }
 
-        const prompt = `You are a Post-Decision Review Expert.
+const prompt = `You are a Post-Decision Review Expert.
 
 Your task is to evaluate the quality of a decision using the information available at the time the decision was made.
 
@@ -722,7 +908,7 @@ executionEffectiveness: How well the selected strategy was executed.`;
         const raw = await askGroq(prompt);
         const result = toJson(raw);
 
-        const newOutcome = new Outcome({
+        const outcomeData = {
             decisionId: decisionId,
             observations: observations,
             metrics: metrics,
@@ -732,8 +918,13 @@ executionEffectiveness: How well the selected strategy was executed.`;
             assumptionAccuracy: result.assumptionAccuracy,
             evidenceQuality: result.evidenceQuality,
             executionEffectiveness: result.executionEffectiveness
-        });
-        await newOutcome.save();
+        };
+
+        const newOutcome = await Outcome.findOneAndUpdate(
+            { decisionId: decisionId },
+            { $set: outcomeData },
+            { upsert: true, new: true }
+        );
 
         decision.status = "Outcome Recorded";
         await decision.save();
@@ -745,11 +936,56 @@ executionEffectiveness: How well the selected strategy was executed.`;
     }
 });
 
+// -- Leadership Reminder API -----------------------------------------
+app.get('/api/leadership-reminder', requireAuth, async (req, res) => {
+    try {
+        const user = await User.findById(req.userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const today = new Date().toISOString().split('T')[0];
+        const cachedDate = user.dailyReminder?.date ? user.dailyReminder.date.toISOString().split('T')[0] : null;
+
+        if (cachedDate === today && user.dailyReminder?.text) {
+            return res.json({ reminder: user.dailyReminder.text });
+        }
+
+        try {
+            const profileContext = await getExecutiveProfile(req.userId);
+            const prompt = `Generate one personalised leadership reminder based upon the executive profile.
+Rules:
+- Maximum 20 words
+- Professional executive tone
+- Relevant to the participant's profile
+- Avoid repetition where practical
+- Do not make a specific business decision for the executive
+
+Return ONLY the reminder text. Do not include quotes or conversational filler.`;
+
+            const rawText = await askGroq(prompt, profileContext);
+            const reminderText = rawText.replace(/^["']|["']$/g, '').trim();
+
+            user.dailyReminder = { text: reminderText, date: new Date() };
+            await user.save();
+            
+            return res.json({ reminder: reminderText });
+        } catch (groqError) {
+            console.error(`[AI Error] Generating reminder for ${req.userId}:`, groqError.message);
+            // Graceful fallback
+            const fallback = user.dailyReminder?.text || "Take a moment today to reflect on your strategic priorities and ensure stakeholder alignment.";
+            return res.json({ reminder: fallback });
+        }
+    } catch (e) {
+        console.error(`ERROR /leadership-reminder: ${e.message}`);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // -- Dashboard API ----------------------------------------------------
 app.get('/api/dashboard', requireAuth, async (req, res) => {
     try {
-        const decisions = await Decision.find().sort({ createdAt: 1 });
-        const outcomes = await Outcome.find().sort({ createdAt: 1 });
+        const decisions = await Decision.find({ userId: req.userId }).sort({ createdAt: 1 });
+        const decisionIds = decisions.map(d => d._id);
+        const outcomes = await Outcome.find({ decisionId: { $in: decisionIds } }).sort({ createdAt: 1 });
 
         const totalDecisions = decisions.length;
         const totalOutcomes = outcomes.length;
@@ -828,6 +1064,66 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
         });
     } catch (e) {
         console.error(`ERROR /dashboard: ${e.message}`);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// -- Executive Judgment API ------------------------------------------
+app.patch('/api/decisions/:id/judgment', requireAuth, async (req, res) => {
+    try {
+        const { disagrees, reason, explanation } = req.body;
+        const validReasons = ["Experience", "Political reality", "Market intuition", "Ethics", "Other", null];
+        
+        if (disagrees && !validReasons.includes(reason)) {
+            return res.status(400).json({ error: "Invalid reason provided." });
+        }
+
+        const decision = await Decision.findById(req.params.id);
+        if (!decision) {
+            return res.status(404).json({ error: "Decision not found" });
+        }
+
+        decision.executiveJudgment = {
+            disagrees: !!disagrees,
+            reason: disagrees ? reason : null,
+            explanation: disagrees ? explanation : ""
+        };
+
+        await decision.save();
+        res.json({ success: true, decision });
+    } catch (e) {
+        console.error(`ERROR /decisions/:id/judgment: ${e.message}`);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// -- Decision Reflection API -----------------------------------------
+app.post('/api/decisions/:id/reflection', requireAuth, async (req, res) => {
+    try {
+        const { decisionTaken, confidence, biggestConcern, expectedOutcome, assumptionsConcerned } = req.body;
+        
+        const decision = await Decision.findById(req.params.id);
+        if (!decision) {
+            return res.status(404).json({ error: "Decision not found" });
+        }
+        
+        const reflectionData = {
+            decisionTaken,
+            confidence: Number(confidence) || 0,
+            biggestConcern: biggestConcern || "",
+            expectedOutcome: expectedOutcome || "",
+            assumptionsConcerned: Array.isArray(assumptionsConcerned) ? assumptionsConcerned : []
+        };
+
+        const outcome = await Outcome.findOneAndUpdate(
+            { decisionId: req.params.id },
+            { $set: { reflection: reflectionData } },
+            { upsert: true, new: true }
+        );
+
+        res.json({ success: true, outcome });
+    } catch (e) {
+        console.error(`ERROR /decisions/:id/reflection: ${e.message}`);
         res.status(500).json({ error: e.message });
     }
 });

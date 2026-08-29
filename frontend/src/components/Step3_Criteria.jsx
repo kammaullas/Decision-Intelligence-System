@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useStore } from '../store'
+import { SlidersHorizontal, ArrowLeft, Activity } from 'lucide-react'
 
 export default function Step3_Criteria() {
   const store = useStore()
@@ -39,8 +40,10 @@ export default function Step3_Criteria() {
   }
 
   return (
-    <>
-      <h1>Criteria and weights</h1>
+    <div className="fade-in">
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <SlidersHorizontal size={24} style={{ color: 'var(--ac)' }} /> Criteria and weights
+      </h1>
       <div className="hint">Adjust how much each factor matters. Must total 100%.</div>
       
       <div className="card">
@@ -88,9 +91,13 @@ export default function Step3_Criteria() {
       </div>
       
       <div className="brow">
-        <button className="btn btn-g" onClick={() => setStep(2)}>Back</button>
-        <button className="btn btn-p" onClick={handleNext}>Run analysis</button>
+        <button className="btn btn-g" onClick={() => setStep(2)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ArrowLeft size={16} /> Back
+        </button>
+        <button className="btn btn-p" onClick={handleNext} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Activity size={16} /> Run analysis
+        </button>
       </div>
-    </>
+    </div>
   )
 }

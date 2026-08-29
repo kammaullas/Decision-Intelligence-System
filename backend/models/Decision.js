@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const DecisionSchema = new mongoose.Schema({
+  userId: { type: String, required: false }, // Store user ID for isolation
   title: { type: String, required: true },
   description: { type: String, required: true },
   industry: { type: String },
@@ -22,6 +23,12 @@ const DecisionSchema = new mongoose.Schema({
     type: String,
     enum: ["Evaluated", "Implemented", "Outcome Recorded"],
     default: "Evaluated"
+  },
+  
+  executiveJudgment: {
+    disagrees: { type: Boolean },
+    reason: { type: String, enum: ["Experience", "Political reality", "Market intuition", "Ethics", "Other", null] },
+    explanation: { type: String }
   },
   
   createdAt: { type: Date, default: Date.now }

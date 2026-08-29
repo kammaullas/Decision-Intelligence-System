@@ -28,10 +28,10 @@ export default function DecisionHistory() {
             <thead>
               <tr>
                 <th>Decision Title</th>
-                <th>Industry</th>
                 <th>Date</th>
                 <th>Readiness</th>
-                <th>Recommendation</th>
+                <th>Reflection</th>
+                <th>Outcome</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -40,7 +40,6 @@ export default function DecisionHistory() {
               {decisionHistory.map(d => (
                 <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/history/${d._id}`)}>
                   <td style={{ fontWeight: '500' }}>{d.title}</td>
-                  <td>{d.industry || '-'}</td>
                   <td>{new Date(d.createdAt).toLocaleDateString()}</td>
                   <td>
                     {d.decisionReadinessScore ? (
@@ -49,7 +48,18 @@ export default function DecisionHistory() {
                       </span>
                     ) : '-'}
                   </td>
-                  <td style={{ color: 'var(--ac)' }}>{d.recommendedOption || '-'}</td>
+                  <td>
+                    {d.reflection ? (
+                      <span style={{ color: 'var(--ac)', fontWeight: '500' }}>{d.reflection}</span>
+                    ) : <span style={{ opacity: 0.5 }}>Pending</span>}
+                  </td>
+                  <td>
+                    {d.outcomeScore ? (
+                      <span className={`badge ${d.outcomeScore >= 80 ? 'bhi' : (d.outcomeScore >= 60 ? 'bmi' : 'blo')}`}>
+                        {d.outcomeScore}/100
+                      </span>
+                    ) : <span style={{ opacity: 0.5 }}>Pending</span>}
+                  </td>
                   <td>
                     <span className="badge" style={{ background: d.status === 'Evaluated' ? 'var(--bg-card-hover)' : 'var(--bg-p)' }}>
                       {d.status}

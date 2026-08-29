@@ -2,19 +2,20 @@ import { useState } from 'react'
 import { useStore } from '../store'
 
 export default function Login() {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
   const { setToken, setLoading } = useStore()
 
   const handleLogin = async () => {
-    if (!password) return
+    if (!email || !password) return
     setLoading(true, "Checking access...")
     setError(false)
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ email, password })
       })
       const data = await res.json()
       setLoading(false)
@@ -35,7 +36,7 @@ export default function Login() {
       const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: 'demo' })
+        body: JSON.stringify({ email: 'demo@executive.com', password: 'demo' })
       })
       const data = await res.json()
       setLoading(false)
@@ -53,7 +54,16 @@ export default function Login() {
       <div className="login-box">
         <div className="login-icon">🔐</div>
         <div className="login-title">DIA Access</div>
-        <div className="login-sub">Decision Intelligence Assistant<br />Enter your program access password</div>
+        <div className="login-sub">Decision Intelligence Assistant<br />Enter your email and program access password</div>
+        <input 
+          className="login-input" 
+          style={{ marginBottom: '10px' }}
+          type="email" 
+          placeholder="Enter email" 
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleLogin()}
+        />
         <input 
           className="login-input" 
           type="password" 
