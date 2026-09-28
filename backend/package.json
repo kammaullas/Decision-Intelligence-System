@@ -6,7 +6,8 @@
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon server.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "postinstall": "npx playwright install chromium || true"
   },
   "keywords": [],
   "author": "",

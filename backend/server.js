@@ -882,12 +882,24 @@ app.get('/api/decisions/:id/report', requireAuth, async (req, res) => {
     try {
         const reportData = await buildReportData(req.params.id, req.userId);
         const html = renderReportTemplate(reportData);
-        const pdfBuffer = await renderHtmlToPdf(html);
         
+        let pdfBuffer = null;
+        try {
+            pdfBuffer = await renderHtmlToPdf(html);
+        } catch (pdfErr) {
+            console.warn("Playwright PDF generation failed, falling back to HTML report:", pdfErr.message);
+        }
+
         const safeTitle = (reportData.decision.title || 'Report').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
-        res.setHeader('Content-disposition', `attachment; filename="Decision_Report_${safeTitle}.pdf"`);
-        res.setHeader('Content-type', 'application/pdf');
-        res.send(pdfBuffer);
+
+        if (pdfBuffer) {
+            res.setHeader('Content-disposition', `attachment; filename="Decision_Report_${safeTitle}.pdf"`);
+            res.setHeader('Content-type', 'application/pdf');
+            return res.send(pdfBuffer);
+        } else {
+            res.setHeader('Content-type', 'text/html');
+            return res.send(html);
+        }
     } catch (e) {
         console.error(`ERROR /report: ${e.message}`);
         if (!res.headersSent) {

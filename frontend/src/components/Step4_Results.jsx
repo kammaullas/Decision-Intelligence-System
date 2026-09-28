@@ -130,24 +130,40 @@ export default function Step4_Results() {
     setIsGeneratingPDF(true);
     setPdfStatusMessage('Preparing Executive Report...');
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/report`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/report?token=${token}`, {
         method: 'GET',
+        headers: {
+          'X-Auth-Token': token
+        },
         credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to download report');
       
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      const safeTitle = (title || 'Analysis').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
-      a.download = `Decision_Report_${safeTitle}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        const htmlText = await res.text();
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(htmlText);
+          printWindow.document.close();
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        }
+      } else {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        const safeTitle = (title || 'Analysis').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+        a.download = `Decision_Report_${safeTitle}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
       
-      setPdfStatusMessage('Report downloaded');
+      setPdfStatusMessage('Report ready');
       setTimeout(() => {
         setIsGeneratingPDF(false);
         setPdfStatusMessage('');
