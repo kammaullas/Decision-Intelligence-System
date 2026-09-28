@@ -57,8 +57,12 @@ function App() {
   }, [theme])
 
   useEffect(() => {
-    // Check auth on load
-    const savedToken = localStorage.getItem('dia_token')
+    // Purge legacy persistent localStorage tokens so fresh visits land on Login
+    localStorage.removeItem('dia_token')
+    localStorage.removeItem('dia_mode')
+
+    // Check auth on load for active tab session
+    const savedToken = sessionStorage.getItem('dia_token')
     if (savedToken) {
       fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/check-auth`, { credentials: 'include',
         headers: { 'X-Auth-Token': savedToken }
@@ -66,12 +70,14 @@ function App() {
       .then(res => res.json())
       .then(data => {
         if (data && data.authenticated) {
-          setToken(savedToken, localStorage.getItem('dia_mode') || 'live')
+          setToken(savedToken, sessionStorage.getItem('dia_mode') || 'live')
         } else {
           logout()
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        logout()
+      })
     }
   }, [setToken, logout])
 

@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 
 export const useStore = create((set) => ({
-  // App state
-  token: localStorage.getItem('dia_token') || null,
-  mode: localStorage.getItem('dia_mode') || 'live', // 'live' or 'demo'
+  // App state - use sessionStorage so opening fresh links/tabs always lands on the Login screen
+  token: sessionStorage.getItem('dia_token') || null,
+  mode: sessionStorage.getItem('dia_mode') || 'live', // 'live' or 'demo'
   currentStep: 0, // 0: Login, 1: Define, 2: Options, 3: Criteria, 4: Results
   loading: false,
   loadingText: '',
@@ -37,12 +37,16 @@ export const useStore = create((set) => ({
 
   // Actions
   setToken: (token, mode = 'live') => {
+    // Clear legacy localStorage
+    localStorage.removeItem('dia_token');
+    localStorage.removeItem('dia_mode');
+
     if (token) {
-      localStorage.setItem('dia_token', token);
-      localStorage.setItem('dia_mode', mode);
+      sessionStorage.setItem('dia_token', token);
+      sessionStorage.setItem('dia_mode', mode);
     } else {
-      localStorage.removeItem('dia_token');
-      localStorage.removeItem('dia_mode');
+      sessionStorage.removeItem('dia_token');
+      sessionStorage.removeItem('dia_mode');
     }
     set({ token, mode, currentStep: token ? 1 : 0, result: null });
   },
@@ -160,6 +164,8 @@ export const useStore = create((set) => ({
   logout: () => {
     localStorage.removeItem('dia_token');
     localStorage.removeItem('dia_mode');
+    sessionStorage.removeItem('dia_token');
+    sessionStorage.removeItem('dia_mode');
     set({
       token: null,
       mode: 'live',
