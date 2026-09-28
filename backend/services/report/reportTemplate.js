@@ -8,6 +8,32 @@ function escapeHtml(unsafe) {
          .replace(/'/g, "&#039;");
 }
 
+function formatBias(b) {
+    if (!b) return '';
+    if (typeof b === 'string') return escapeHtml(b);
+    if (typeof b === 'object') {
+        const title = b.bias || b.name || b.title || 'Potential Bias';
+        const desc = b.description || b.explanation || '';
+        const impact = b.impact ? `<div style="font-size:0.85rem; margin-top:2px; opacity:0.9;"><strong>Impact:</strong> ${escapeHtml(b.impact)}</div>` : '';
+        return `<strong>${escapeHtml(title)}</strong>${desc ? `: ${escapeHtml(desc)}` : ''}${impact}`;
+    }
+    return String(b);
+}
+
+function formatListItem(item) {
+    if (!item) return '';
+    if (typeof item === 'string') return escapeHtml(item);
+    if (typeof item === 'object') {
+        const title = item.item || item.title || item.step || item.action || item.name || item.point || '';
+        const desc = item.description || item.reason || item.explanation || item.detail || item.advice || '';
+        if (title && desc) {
+            return `<strong>${escapeHtml(title)}</strong>: ${escapeHtml(desc)}`;
+        }
+        return escapeHtml(title || desc || JSON.stringify(item));
+    }
+    return String(item);
+}
+
 function renderBarChart(scores, maxScore) {
     if (!scores || scores.length === 0) return '';
     let html = '<div class="chart-container">';
@@ -265,18 +291,18 @@ function renderReportTemplate(data) {
         ${e.whyWon.length > 0 ? `
         <div class="card avoid-break">
             <h2 style="margin-top:0;">Why This Recommendation Won</h2>
-            ${e.whyWon.map(w => `<div class="list-item">${escapeHtml(w)}</div>`).join('')}
+            ${e.whyWon.map(w => `<div class="list-item">${formatListItem(w)}</div>`).join('')}
         </div>
         ` : ''}
 
         <div class="grid">
             <div class="card avoid-break">
                 <h2 style="margin-top:0;">Critical Assumptions</h2>
-                ${c.assumptions.length > 0 ? c.assumptions.map(a => `<div class="list-item">${escapeHtml(a)}</div>`).join('') : '<p class="muted">No critical assumptions identified.</p>'}
+                ${c.assumptions.length > 0 ? c.assumptions.map(a => `<div class="list-item">${formatListItem(a)}</div>`).join('') : '<p class="muted">No critical assumptions identified.</p>'}
             </div>
             <div class="card avoid-break">
                 <h2 style="margin-top:0;">Known Constraints</h2>
-                ${c.constraints.length > 0 ? c.constraints.map(con => `<div class="list-item">${escapeHtml(con)}</div>`).join('') : '<p class="muted">No known constraints identified.</p>'}
+                ${c.constraints.length > 0 ? c.constraints.map(con => `<div class="list-item">${formatListItem(con)}</div>`).join('') : '<p class="muted">No known constraints identified.</p>'}
             </div>
         </div>
 
@@ -284,7 +310,7 @@ function renderReportTemplate(data) {
         <div class="card avoid-break" style="background-color: #FFF8E1; border-color: #FFC107;">
             <h2 style="margin-top:0; color: #B08D00;">Missing Information</h2>
             <p style="margin-top:-10px; font-size:0.9rem; color:#856404;">Information you might want to gather before executing this decision.</p>
-            ${e.missingInfo.map(m => `<div class="list-item" style="color: #665000;">${escapeHtml(m)}</div>`).join('')}
+            ${e.missingInfo.map(m => `<div class="list-item" style="color: #665000;">${formatListItem(m)}</div>`).join('')}
         </div>
         ` : ''}
 
@@ -292,7 +318,7 @@ function renderReportTemplate(data) {
         <div class="card avoid-break" style="background-color: #F8D7DA; border-color: #F5C6CB;">
             <h2 style="margin-top:0; color: #721C24;">Bias Alerts</h2>
             <p style="margin-top:-10px; font-size:0.9rem; color:#721C24;">Potential cognitive biases detected in your framing.</p>
-            ${e.biases.map(b => `<div class="list-item" style="color: #721C24;">${escapeHtml(b)}</div>`).join('')}
+            ${e.biases.map(b => `<div class="list-item" style="color: #721C24; margin-bottom: 8px;">${formatBias(b)}</div>`).join('')}
         </div>
         ` : ''}
 
@@ -315,14 +341,14 @@ function renderReportTemplate(data) {
         ${e.nextSteps && e.nextSteps.length > 0 ? `
         <div class="card avoid-break">
             <h2 style="margin-top:0;">Implementation Priorities (Next Steps)</h2>
-            ${e.nextSteps.map(n => `<div class="list-item">${escapeHtml(n)}</div>`).join('')}
+            ${e.nextSteps.map(n => `<div class="list-item">${formatListItem(n)}</div>`).join('')}
         </div>
         ` : '<p>No specific next steps provided.</p>'}
 
         ${e.coaching && e.coaching.length > 0 ? `
         <div class="card avoid-break" style="background: #FCE8ED; border-color: var(--primary-light);">
             <h2 style="margin-top:0; color: var(--primary);">Personalized Executive Coaching</h2>
-            ${e.coaching.map(co => `<div class="list-item">${escapeHtml(co)}</div>`).join('')}
+            ${e.coaching.map(co => `<div class="list-item">${formatListItem(co)}</div>`).join('')}
         </div>
         ` : ''}
 
