@@ -25,7 +25,7 @@ export default function Login() {
       const data = await res.json()
       setLoading(false)
       if (data.success) {
-        setToken('cookie', 'live')
+        setToken(data.token || 'cookie', 'live')
       } else {
         setError(true)
         setErrorMsg(data.error || "Incorrect password or connection failed.")
@@ -51,7 +51,7 @@ export default function Login() {
       const data = await res.json()
       setLoading(false)
       if (data.success) {
-        setToken('cookie', 'live')
+        setToken(data.token || 'cookie', 'live')
       } else {
         setError(true)
         setErrorMsg(data.error || "Registration failed.")
@@ -80,7 +80,7 @@ export default function Login() {
       const data = await res.json()
       setLoading(false)
       if (data.success) {
-        setToken('cookie', 'demo')
+        setToken(data.token || 'cookie', 'demo')
       }
     } catch (e) {
       setLoading(false)

@@ -13,7 +13,44 @@ const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://decision-intelligence-system-mu.vercel.app',
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      /\.vercel\.app$/.test(origin) ||
+      /localhost:\d+$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token']
+}));
+app.options('*', cors());
+
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER || !!process.env.PORT;
+const getCookieOptions = (req) => {
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || isProduction;
+  return {
+    httpOnly: true,
+    secure: isHttps,
+    sameSite: isHttps ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000
+  };
+};
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -120,8 +157,8 @@ app.post('/api/register', async (req, res) => {
 
         const token = crypto.randomBytes(32).toString('hex');
         valid_tokens.set(token, user._id.toString());
-        res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
-        return res.json({ success: true });
+        res.cookie('token', token, getCookieOptions(req));
+        return res.json({ success: true, token });
     } catch (err) {
         return res.status(500).json({ success: false, error: err.message });
     }
@@ -139,14 +176,28 @@ app.post('/api/login', async (req, res) => {
     try {
         if (password === ACCESS_PASSWORD || password === "demo") {
             // Support legacy access for testing / demo
-            const user = await User.findOne({ email });
+            let user = await User.findOne({ email });
             if (!user) {
-                return res.status(401).json({ success: false, error: "Participant not found" });
+                // Auto create demo user if missing
+                if (password === "demo" || email.includes("demo")) {
+                    user = new User({
+                        name: "Demo Executive",
+                        email: email || "demo@executive.com",
+                        password: await bcrypt.hash("demo", 10),
+                        role: "Executive",
+                        organisation: "Enterprise Inc.",
+                        industry: "Technology"
+                    });
+                    await user.save();
+                    generateUserDecisionDNA(user._id).catch(err => console.error("Async DNA demo gen error:", err));
+                } else {
+                    return res.status(401).json({ success: false, error: "Participant not found" });
+                }
             }
             const token = crypto.randomBytes(32).toString('hex');
             valid_tokens.set(token, user._id.toString());
-            res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
-            return res.json({ success: true });
+            res.cookie('token', token, getCookieOptions(req));
+            return res.json({ success: true, token });
         }
 
         const user = await User.findOne({ email });
@@ -159,8 +210,8 @@ app.post('/api/login', async (req, res) => {
         }
         const token = crypto.randomBytes(32).toString('hex');
         valid_tokens.set(token, user._id.toString());
-        res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
-        return res.json({ success: true });
+        res.cookie('token', token, getCookieOptions(req));
+        return res.json({ success: true, token });
     } catch (err) {
         return res.status(500).json({ success: false, error: err.message });
     }
@@ -168,9 +219,9 @@ app.post('/api/login', async (req, res) => {
 
 // -- Logout ----------------------------------------------------------
 app.post('/api/logout', (req, res) => {
-    const token = req.cookies.token;
+    const token = req.cookies.token || req.header('X-Auth-Token') || "";
     if (token) valid_tokens.delete(token);
-    res.clearCookie('token');
+    res.clearCookie('token', getCookieOptions(req));
     res.json({ success: true });
 });
 
