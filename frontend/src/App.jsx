@@ -65,13 +65,15 @@ function App() {
       })
       .then(res => res.json())
       .then(data => {
-        if (data.authenticated) {
+        if (data && data.authenticated) {
           setToken(savedToken, localStorage.getItem('dia_mode') || 'live')
+        } else {
+          logout()
         }
       })
       .catch(() => {})
     }
-  }, [setToken])
+  }, [setToken, logout])
 
   return (
     <>
