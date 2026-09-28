@@ -38,7 +38,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token']
 }));
-app.options('*', cors());
 
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER || !!process.env.PORT;
 const getCookieOptions = (req) => {
