@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { Moon, Sun, LayoutDashboard, Fingerprint, Lightbulb, History, LogOut } from 'lucide-react'
 import { useStore } from './store'
@@ -12,12 +12,25 @@ import DecisionDetail from './components/DecisionDetail'
 import OrganizationalInsights from './components/OrganizationalInsights'
 import Dashboard from './components/Dashboard'
 import DecisionDNA from './components/DecisionDNA'
+import JourneyMap from './components/JourneyMap'
 import './index.css'
 
 const Wizard = () => {
   const { currentStep } = useStore()
+  const [showMap, setShowMap] = useState(false)
+  const prevStepRef = useRef(0)
+  
+  useEffect(() => {
+    // Only show map when progressing forward (not when resetting back to step 1)
+    if (currentStep >= 1 && currentStep <= 4 && currentStep >= prevStepRef.current) {
+      setShowMap(true)
+    }
+    prevStepRef.current = currentStep
+  }, [currentStep])
+
   return (
     <>
+      {showMap && <JourneyMap onClose={() => setShowMap(false)} currentStep={currentStep} />}
       <div className={`page ${currentStep === 1 ? 'on' : ''}`}>
         <Step1_Define />
       </div>
@@ -47,7 +60,7 @@ function App() {
     // Check auth on load
     const savedToken = localStorage.getItem('dia_token')
     if (savedToken) {
-      fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/check-auth`, {
+      fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/check-auth`, { credentials: 'include',
         headers: { 'X-Auth-Token': savedToken }
       })
       .then(res => res.json())
@@ -90,13 +103,13 @@ function App() {
                 <LayoutDashboard size={16} /> Dashboard
               </button>
               <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/dna')}>
-                <Fingerprint size={16} /> My DNA
+                <Fingerprint size={16} className="icon-pulse" /> My DNA
               </button>
               <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/insights')}>
-                <Lightbulb size={16} /> Insights
+                <Lightbulb size={16} className="icon-ai" /> Insights
               </button>
               <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/history')}>
-                <History size={16} /> History
+                <History size={16} className="icon-pulse" /> History
               </button>
               
               <button className="theme-toggle" onClick={toggleTheme} style={{ background: 'transparent', border: 'none', color: 'var(--t1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', marginLeft: '8px' }}>

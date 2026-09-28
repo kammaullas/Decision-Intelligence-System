@@ -25,6 +25,10 @@ const UserSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
+  password: {
+    type: String,
+    required: true
+  },
   batch: { 
     type: String,
     trim: true

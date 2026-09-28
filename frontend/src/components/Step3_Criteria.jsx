@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useStore } from '../store'
-import { SlidersHorizontal, ArrowLeft, Activity } from 'lucide-react'
+import { SlidersHorizontal, ArrowLeft, Activity, CheckCircle2, AlertCircle } from 'lucide-react'
+import CircularProgress from './CircularProgress'
 
 export default function Step3_Criteria() {
   const store = useStore()
@@ -20,7 +21,7 @@ export default function Step3_Criteria() {
         payloadContext += `\n\n--- EXTRACTED DOCUMENT CONTEXT ---\n${JSON.stringify(extractedData)}`;
       }
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/evaluate`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/evaluate`, { credentials: 'include',
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -84,9 +85,32 @@ export default function Step3_Criteria() {
           ))}
         </div>
         
-        <div className="wtot wok" style={{ marginTop: '15px' }}>
-          <span>Weights balanced</span>
-          <span>{totalWeight}%</span>
+        <div style={{ 
+          marginTop: '20px', 
+          padding: '16px 20px', 
+          borderRadius: '12px', 
+          background: 'var(--s2)', 
+          border: `1px solid ${totalWeight === 100 ? 'var(--success)' : 'var(--warning)'}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '0.95rem', color: totalWeight === 100 ? 'var(--success)' : 'var(--warning)' }}>
+              {totalWeight === 100 ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+              <span>{totalWeight === 100 ? 'Weights Fully Balanced' : 'Weight Allocation Alert'}</span>
+            </div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--t3)', marginTop: '4px' }}>
+              {totalWeight === 100 ? 'Criteria distribution is 100% normalized.' : `Total is currently ${totalWeight}%. Must equal exactly 100% to proceed.`}
+            </div>
+          </div>
+
+          <CircularProgress 
+            value={Math.min(totalWeight, 100)} 
+            color={totalWeight === 100 ? 'var(--success)' : totalWeight > 100 ? 'var(--error)' : 'var(--warning)'} 
+            size={68} 
+            strokeWidth={7} 
+          />
         </div>
       </div>
       
@@ -95,7 +119,7 @@ export default function Step3_Criteria() {
           <ArrowLeft size={16} /> Back
         </button>
         <button className="btn btn-p" onClick={handleNext} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Activity size={16} /> Run analysis
+          <Activity size={16} className="icon-pulse" /> Run analysis
         </button>
       </div>
     </div>

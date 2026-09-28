@@ -12,6 +12,7 @@ const DecisionDNASchema = new mongoose.Schema({
     trim: true,
     required: true
   },
+  archetypeMatch: { type: Number, min: 50, max: 100, default: 91 },
   strategicThinking: { type: Number, min: 1, max: 10 },
   analyticalThinking: { type: Number, min: 1, max: 10 },
   innovationOrientation: { type: Number, min: 1, max: 10 },

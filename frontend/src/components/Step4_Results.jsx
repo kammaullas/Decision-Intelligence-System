@@ -1,12 +1,11 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useStore } from '../store'
-import html2pdf from 'html2pdf.js'
-import ExecutiveReport from './ExecutiveReport'
-import { CheckCircle, Download, RotateCcw, FileText, ChevronRight } from 'lucide-react'
+import { CheckCircle, Download, RotateCcw, FileText, ChevronRight, RefreshCw, ArrowRight, BrainCircuit, Save, AlertTriangle, Shield } from 'lucide-react'
+import CircularProgress from './CircularProgress'
+import BenchmarkMetric from './BenchmarkMetric'
 
 export default function Step4_Results() {
   const store = useStore()
-  const reportRef = useRef(null)
   const { title, result, criteria, resetApp, extractedData, framingAnalysis, token, setExecutiveJudgment } = store
   const [activeTab, setActiveTab] = useState(0)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
@@ -41,7 +40,7 @@ export default function Step4_Results() {
         expectedOutcome: reflectionExpectedOutcome,
         assumptionsConcerned: reflectionAssumptions
       };
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/reflection`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/reflection`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
         body: JSON.stringify(payload)
@@ -67,7 +66,7 @@ export default function Step4_Results() {
     setJudgmentError('');
     try {
       const payload = { disagrees, reason: disagrees ? judgmentReason : null, explanation: disagrees ? judgmentExplanation : "" };
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/judgment`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/judgment`, { credentials: 'include',
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
         body: JSON.stringify(payload)
@@ -128,27 +127,25 @@ export default function Step4_Results() {
   const ckeys = Object.keys(criteria)
 
   const downloadReport = async () => {
-    if (!reportRef.current) return;
-    
     setIsGeneratingPDF(true);
     setPdfStatusMessage('Preparing Executive Report...');
-
     try {
-      await document.fonts.ready;
-      // Sanitize title for filename
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/report`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to download report');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
       const safeTitle = (title || 'Analysis').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
-      const filename = `Executive_Decision_Report_${safeTitle}.pdf`;
-
-      const opt = {
-        margin:       0,
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 1.0 },
-        html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 794 },
-        jsPDF:        { unit: 'px', format: [794, 1122], orientation: 'portrait' },
-        pagebreak:    { mode: ['css', 'legacy'] }
-      };
-
-      await html2pdf().set(opt).from(reportRef.current).save();
+      a.download = `Decision_Report_${safeTitle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
       
       setPdfStatusMessage('Report downloaded');
       setTimeout(() => {
@@ -170,7 +167,6 @@ export default function Step4_Results() {
   // 1. Readiness Score
   const hasReadiness = framingAnalysis && framingAnalysis.decisionReadinessScore !== undefined;
   const readinessScore = hasReadiness ? framingAnalysis.decisionReadinessScore : null;
-  const readinessDisplay = hasReadiness ? readinessScore : 'N/A';
   const readinessText = hasReadiness 
     ? (readinessScore >= 80 ? "High Readiness" : readinessScore >= 50 ? "Moderate Readiness" : "Low Readiness")
     : "Not Analyzed";
@@ -248,35 +244,47 @@ export default function Step4_Results() {
 
   return (
     <>
-      <h1>Analysis results</h1>
-      <div className="hint" style={{ marginBottom: '24px' }}>Evaluation complete.</div>
+      <h1 className="fade-in">Analysis results</h1>
+      <div className="hint fade-in" style={{ marginBottom: '24px' }}>Evaluation complete.</div>
       
       {/* --- Executive Decision Summary --- */}
-      {isJudgmentConfirmed && (
-      <div className="card" style={{ padding: '24px', marginBottom: '32px', border: '1px solid var(--border)' }}>
+      <div className="card fade-in" style={{ padding: '24px', marginBottom: '32px', border: '1px solid var(--border)' }}>
         <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.4rem' }}>Executive Decision Summary</h2>
         
-        {/* Top Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '24px' }}>
-          <div style={{ padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Readiness</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-              {readinessDisplay} {hasReadiness && <span style={{fontSize: '1rem', opacity: 0.5, fontWeight: 400}}>/ 100</span>}
-            </div>
-            <div style={{ fontSize: '0.9rem', color: readinessColor }}>
-              {readinessText}
-            </div>
-          </div>
-          
-          <div style={{ padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Confidence</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700 }}>{confidence}%</div>
-            <div style={{ fontSize: '0.9rem', color: confColor }}>{confText}</div>
-          </div>
-          
-          <div style={{ padding: '16px', background: 'var(--bg-card-hover)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Top Risk</div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 500, lineHeight: 1.3, color: 'var(--error)' }}>{topRiskText}</div>
+        {/* Circular score gauges */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          {hasReadiness && (
+            <CircularProgress 
+              value={readinessScore} 
+              color={readinessColor} 
+              size={110} 
+              strokeWidth={9}
+              label={readinessText} 
+            />
+          )}
+          <CircularProgress 
+            value={confidence} 
+            color={confColor} 
+            size={110} 
+            strokeWidth={9}
+            label={confText} 
+          />
+        </div>
+
+        {/* Point Range Benchmark Metric */}
+        <BenchmarkMetric 
+          score={hasReadiness ? readinessScore : confidence} 
+          metricName={hasReadiness ? "Strategic Decision Readiness" : "Executive Confidence"} 
+          benchmark={70} 
+          subtitle="Point Range Analysis: Evaluates evidentiary depth and option separation against the 70 pt benchmark."
+        />
+
+        {/* Top Risk */}
+        <div className="fade-in" style={{ padding: '14px 16px', background: 'rgba(239,68,68,0.06)', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.15)', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <AlertTriangle size={18} style={{ color: 'var(--error)', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--error)', marginBottom: '4px' }}>Top Risk</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 500, lineHeight: 1.4, color: 'var(--t1)' }}>{topRiskText}</div>
           </div>
         </div>
         
@@ -320,7 +328,6 @@ export default function Step4_Results() {
           </div>
         )}
       </div>
-      )}
 
       <div className="card" style={{ marginBottom: '32px' }}>
         <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.2rem' }}>Detailed Analysis</h2>
@@ -590,7 +597,7 @@ export default function Step4_Results() {
 
       {isReflectionVisible && (
         <div className="card" style={{ marginBottom: '32px', border: '1px solid var(--ac)' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.2rem', color: 'var(--ac)', display: 'flex', alignItems: 'center', gap: '8px' }}><BrainCircuit size={20} /> Decision Reflection</h2>
+          <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.2rem', color: 'var(--ac)', display: 'flex', alignItems: 'center', gap: '8px' }}><BrainCircuit size={20} className="icon-ai" /> Decision Reflection</h2>
           <p style={{ marginBottom: '24px', opacity: 0.8 }}>Before you finalize, capture your mindset for future outcome tracking.</p>
 
           <div style={{ marginBottom: '16px' }}>
@@ -672,17 +679,7 @@ export default function Step4_Results() {
         </div>
       )}
 
-      <ExecutiveReport 
-        ref={reportRef}
-        displayScores={displayScores}
-        bestOption={bestOption}
-        readinessDisplay={readinessDisplay}
-        readinessColor={readinessColor}
-        confidence={confidence}
-        confColor={confColor}
-        eo={eo}
-        whyWon={result.insights?.whyRecommendationWon || []}
-      />
+
     </>
   )
 }

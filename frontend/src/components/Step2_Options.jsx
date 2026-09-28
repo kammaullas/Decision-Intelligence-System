@@ -69,7 +69,7 @@ export default function Step2_Options() {
           <ArrowLeft size={16} /> Back
         </button>
         <button className="btn btn-p" onClick={handleNext} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <PlayCircle size={16} /> Evaluate options
+          <PlayCircle size={16} className="icon-pulse" /> Evaluate options
         </button>
       </div>
     </div>

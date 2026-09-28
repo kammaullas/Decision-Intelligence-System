@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { ArrowLeft, FileDown, PlusCircle, LayoutList, Target, Lightbulb, Clock, CheckCircle, Upload, PlayCircle, History, Sparkles, AlertTriangle, Briefcase, Camera } from 'lucide-react'
+import CircularProgress from './CircularProgress'
+import BenchmarkMetric from './BenchmarkMetric'
 
 export default function DecisionDetail() {
   const { id } = useParams()
@@ -21,14 +23,14 @@ export default function DecisionDetail() {
   const fetchDecisionAndOutcomes = async () => {
     setLoading(true, "Loading decision data...")
     try {
-      const resD = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}`, {
+      const resD = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}`, { credentials: 'include',
         headers: { 'X-Auth-Token': token }
       })
       const dataD = await resD.json()
       if (dataD.error) throw new Error(dataD.error)
       setDecision(dataD)
 
-      const resO = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}/outcomes`, {
+      const resO = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}/outcomes`, { credentials: 'include',
         headers: { 'X-Auth-Token': token }
       })
       const dataO = await resO.json()
@@ -47,6 +49,30 @@ export default function DecisionDetail() {
     fetchDecisionAndOutcomes()
   }, [id, token])
 
+  const downloadReport = async (e, id, title) => {
+    if (e) e.stopPropagation();
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}/report`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to download report');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      const safeTitle = (title || 'Report').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+      a.download = `Decision_Report_${safeTitle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('Unable to generate the report. Please try again.');
+    }
+  }
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -55,7 +81,7 @@ export default function DecisionDetail() {
     
     setUploadStatus('Extracting document...')
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/extract-document`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/extract-document`, { credentials: 'include',
         method: 'POST',
         headers: { 'X-Auth-Token': token },
         body: formData
@@ -76,7 +102,7 @@ export default function DecisionDetail() {
 
     setLoading(true, "Evaluating outcome...")
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/evaluate-outcome`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/evaluate-outcome`, { credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
         body: JSON.stringify({
@@ -153,7 +179,7 @@ export default function DecisionDetail() {
           <button className="btn btn-secondary" onClick={() => navigate('/history')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}>
             <ArrowLeft size={18} /> Back
           </button>
-          <button className="btn btn-secondary" onClick={() => window.open(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${id}/report?token=${token}`, '_blank')} style={{ borderColor: 'var(--ac)', color: 'var(--ac)', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}>
+          <button className="btn btn-secondary" onClick={(e) => downloadReport(e, id, decision.title)} style={{ borderColor: 'var(--ac)', color: 'var(--ac)', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}>
             <FileDown size={18} /> Export Executive Report
           </button>
           <button className="btn btn-p" onClick={() => setShowOutcomeForm(!showOutcomeForm)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px' }}>
@@ -188,48 +214,121 @@ export default function DecisionDetail() {
       )}
       
       {/* --- NEW EXECUTIVE REVIEW CARD --- */}
-      <div className="card" style={{ marginBottom: '32px', padding: '24px', border: '2px solid var(--b1)' }}>
+      <div className="card fade-in" style={{ marginBottom: '32px', padding: '28px', border: '1px solid var(--b1)' }}>
         
-        {/* Top Summary Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '24px' }}>
-          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Readiness Score</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 700, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              {readinessScore} <span style={{fontSize: '0.9rem', opacity: 0.5, fontWeight: 400}}>/ 100</span>
+        {/* Top Summary Row - Circular Gauges */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '28px' }}>
+          
+          {/* Readiness Score Ring */}
+          <div className="kpi-card" style={{ alignItems: 'center', textAlign: 'center', padding: '20px 14px' }}>
+            <div style={{ fontSize: '0.78rem', opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700, marginBottom: '10px' }}>
+              Readiness Score
             </div>
-            <div style={{ fontSize: '0.85rem', color: rsColor }}>{rsText}</div>
+            <CircularProgress 
+              value={readinessScore} 
+              color={rsColor} 
+              size={85} 
+              strokeWidth={8} 
+            />
+            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: rsColor, marginTop: '8px' }}>
+              {rsText}
+            </div>
           </div>
           
-          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Decision Quality</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 700, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              {latestOutcome ? qualityScore : '--'} <span style={{fontSize: '0.9rem', opacity: 0.5, fontWeight: 400}}>/ 100</span>
+          {/* Decision Quality Ring */}
+          <div className="kpi-card" style={{ alignItems: 'center', textAlign: 'center', padding: '20px 14px' }}>
+            <div style={{ fontSize: '0.78rem', opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700, marginBottom: '10px' }}>
+              Decision Quality
             </div>
-            <div style={{ fontSize: '0.85rem', color: qsColor }}>{latestOutcome ? qsText : "Pending"}</div>
+            {latestOutcome ? (
+              <>
+                <CircularProgress 
+                  value={qualityScore} 
+                  color={qsColor} 
+                  size={85} 
+                  strokeWidth={8} 
+                />
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: qsColor, marginTop: '8px' }}>
+                  {qsText}
+                </div>
+              </>
+            ) : (
+              <div style={{ height: '115px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)' }}>
+                <Clock size={28} style={{ opacity: 0.5, marginBottom: '6px' }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Outcome Pending</span>
+              </div>
+            )}
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Outcome Count</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 700 }}>{outcomes.length}</div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>{outcomes.length === 1 ? '1 Outcome Recorded' : `${outcomes.length} Outcome Reviews`}</div>
+          {/* Outcome Confidence Ring */}
+          <div className="kpi-card" style={{ alignItems: 'center', textAlign: 'center', padding: '20px 14px' }}>
+            <div style={{ fontSize: '0.78rem', opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700, marginBottom: '10px' }}>
+              Outcome Confidence
+            </div>
+            {latestOutcome ? (
+              <>
+                <CircularProgress 
+                  value={oc} 
+                  color={ocColor} 
+                  size={85} 
+                  strokeWidth={8} 
+                />
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: ocColor, marginTop: '8px' }}>
+                  {ocText}
+                </div>
+              </>
+            ) : (
+              <div style={{ height: '115px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)' }}>
+                <Target size={28} style={{ opacity: 0.5, marginBottom: '6px' }} />
+                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Unrated</span>
+              </div>
+            )}
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Outcome Confidence</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 700 }}>{latestOutcome ? `${oc}%` : '--'}</div>
-            <div style={{ fontSize: '0.85rem', color: latestOutcome ? ocColor : 'inherit' }}>{latestOutcome ? ocText : "Pending"}</div>
-          </div>
+          {/* Reviews & Status Dossier */}
+          <div className="kpi-card" style={{ justifyContent: 'space-between', padding: '20px 18px' }}>
+            <div>
+              <div style={{ fontSize: '0.78rem', opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700, marginBottom: '6px' }}>
+                Outcome History
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{outcomes.length}</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--t3)', marginTop: '2px' }}>
+                {outcomes.length === 1 ? '1 Evaluation Cycle' : `${outcomes.length} Evaluation Cycles`}
+              </div>
+            </div>
 
-          <div style={{ padding: '16px', background: 'var(--s2)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>Status</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 600, marginTop: '5px' }}>{decision.status || 'Evaluated'}</div>
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--b1)' }}>
+              <div style={{ fontSize: '0.72rem', opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, marginBottom: '4px' }}>Status</div>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '14px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                background: latestOutcome ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                color: latestOutcome ? 'var(--success)' : 'var(--ac2)'
+              }}>
+                <span className="pulse-dot" style={{ background: latestOutcome ? 'var(--success)' : 'var(--ac2)' }}></span>
+                {decision.status || 'Evaluated'}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Point Range Benchmark Metric */}
+        <BenchmarkMetric 
+          score={readinessScore} 
+          metricName="Decision Readiness" 
+          benchmark={70} 
+          subtitle="Point Range Analysis: Evaluates evidentiary depth and option separation against the 70 pt benchmark."
+        />
 
         {/* Recommended Option Section */}
         <div className="fade-in" style={{ padding: '32px', background: 'var(--s2)', borderRadius: '12px', marginBottom: '32px', border: '1px solid var(--b1)', borderLeft: '4px solid var(--ac)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', opacity: 0.8, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-            <Sparkles size={18} style={{ color: 'var(--ac)' }} /> Recommended Strategy
+            <Sparkles size={18} style={{ color: 'var(--ac)' }} className="icon-ai" /> Recommended Strategy
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1.3, color: 'var(--ac)', marginBottom: '20px' }}>{recOption}</div>
           

@@ -4,13 +4,18 @@ const crypto = require('crypto');
 const Groq = require('groq-sdk');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
-const PDFDocument = require('pdfkit');
+const { buildReportData } = require('./services/report/reportDataService');
+const { renderReportTemplate } = require('./services/report/reportTemplate');
+const { renderHtmlToPdf } = require('./services/report/reportRenderer');
 const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
-app.use(cors({ origin: '*' }));
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -74,12 +79,12 @@ Recommendations depend upon the quality and completeness of available informatio
 
 
 function checkToken(req) {
-    const token = req.header('X-Auth-Token') || req.query.token || "";
+    const token = req.cookies.token || req.header('X-Auth-Token') || req.query.token || "";
     return valid_tokens.has(token);
 }
 
 function requireAuth(req, res, next) {
-    const token = req.header('X-Auth-Token') || req.query.token || "";
+    const token = req.cookies.token || req.header('X-Auth-Token') || req.query.token || "";
     const userId = valid_tokens.get(token);
     if (!userId) {
         return res.status(401).json({ error: "Unauthorized. Please login." });
@@ -88,26 +93,85 @@ function requireAuth(req, res, next) {
     next();
 }
 
+// -- Register --------------------------------------------------------
+app.post('/api/register', async (req, res) => {
+    const { name, email, password, designation, organisation, industry } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).json({ success: false, error: "Name, email, and password are required" });
+    }
+    try {
+        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        if (existingUser) {
+            return res.status(400).json({ success: false, error: "User already exists" });
+        }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({
+            name,
+            email: email.toLowerCase(),
+            password: hashedPassword,
+            designation,
+            organisation,
+            industry
+        });
+        await user.save();
+        
+        // Proactively generate initial Decision DNA for new account
+        generateUserDecisionDNA(user._id).catch(err => console.error("Async DNA gen error:", err));
+
+        const token = crypto.randomBytes(32).toString('hex');
+        valid_tokens.set(token, user._id.toString());
+        res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
+        return res.json({ success: true });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // -- Login -----------------------------------------------------------
 app.post('/api/login', async (req, res) => {
     const email = (req.body.email || "").trim().toLowerCase();
     const password = (req.body.password || "").trim();
 
-    if (!email) {
-        return res.status(400).json({ success: false, error: "Email is required" });
+    if (!email || !password) {
+        return res.status(400).json({ success: false, error: "Email and password are required" });
     }
 
-    if (password === ACCESS_PASSWORD || password === "demo") {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(401).json({ success: false, error: "Participant not found" });
+    try {
+        if (password === ACCESS_PASSWORD || password === "demo") {
+            // Support legacy access for testing / demo
+            const user = await User.findOne({ email });
+            if (!user) {
+                return res.status(401).json({ success: false, error: "Participant not found" });
+            }
+            const token = crypto.randomBytes(32).toString('hex');
+            valid_tokens.set(token, user._id.toString());
+            res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
+            return res.json({ success: true });
         }
 
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ success: false, error: "Invalid credentials" });
+        }
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            return res.status(401).json({ success: false, error: "Invalid credentials" });
+        }
         const token = crypto.randomBytes(32).toString('hex');
         valid_tokens.set(token, user._id.toString());
-        return res.json({ success: true, token: token });
+        res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 });
+        return res.json({ success: true });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
     }
-    return res.status(401).json({ success: false, error: "Invalid credentials" });
+});
+
+// -- Logout ----------------------------------------------------------
+app.post('/api/logout', (req, res) => {
+    const token = req.cookies.token;
+    if (token) valid_tokens.delete(token);
+    res.clearCookie('token');
+    res.json({ success: true });
 });
 
 // -- Check auth ------------------------------------------------------
@@ -115,11 +179,110 @@ app.get('/api/check-auth', (req, res) => {
     res.json({ authenticated: checkToken(req) });
 });
 
+// -- Decision DNA Generator Helper -----------------------------------
+async function generateUserDecisionDNA(userId) {
+    const user = await User.findById(userId);
+    if (!user) return null;
+
+    let decisionSummary = "";
+    try {
+        const decisions = await Decision.find({ userId: userId.toString() }).sort({ createdAt: -1 }).limit(5);
+        if (decisions && decisions.length > 0) {
+            decisionSummary = decisions.map(d => `- Title: "${d.title}", Industry: ${d.industry || user.industry || 'General'}, Stakes: ${d.stakes || 'High'}, Status: ${d.status || 'Evaluated'}, Readiness Score: ${d.decisionReadinessScore || 'N/A'}`).join('\n');
+        }
+    } catch (_) {}
+
+    const prompt = `You are a Chief Behavioral Psychologist and Strategic Cognitive Profiling Expert.
+Formulate a comprehensive, highly credible "Executive Decision DNA" profile for this leader:
+
+LEADER DOSSIER:
+Name: ${user.name || 'Executive'}
+Designation: ${user.designation || 'Strategic Leader'}
+Organisation: ${user.organisation || 'Enterprise'}
+Industry: ${user.industry || 'Management'}
+
+RECENT STRATEGIC DECISION CONTEXT:
+${decisionSummary || 'No strategic decisions recorded yet. Formulate their profile based on their executive role, industry pressures, and governance requirements.'}
+
+Return ONLY valid JSON matching this schema:
+{
+  "decisionStyle": "A distinctive 2-4 word executive archetype (e.g. 'Directive Analytical Strategist', 'Visionary Growth Architect', 'Pragmatic Systems Builder', 'Risk-Calibrated Operator')",
+  "archetypeMatch": 92,
+  "strategicThinking": 8,
+  "analyticalThinking": 8,
+  "innovationOrientation": 7,
+  "stakeholderOrientation": 7,
+  "riskTolerance": 6,
+  "executionUrgency": 7,
+  "ethicalOrientation": 8,
+  "consensusOrientation": 6,
+  "strengths": ["Clear strength 1", "Clear strength 2", "Clear strength 3"],
+  "blindSpots": ["Cognitive blind spot 1", "Cognitive blind spot 2"],
+  "coachingAdvice": ["Executive directive 1", "Executive directive 2"]
+}`;
+
+    try {
+        const raw = await askGroq(prompt, "");
+        const parsed = toJson(raw);
+        if (parsed && parsed.decisionStyle) {
+            let dna = await DecisionDNA.findOne({ user: userId });
+            if (!dna) {
+                dna = new DecisionDNA({
+                    user: userId,
+                    ...parsed
+                });
+            } else {
+                Object.assign(dna, parsed);
+            }
+            await dna.save();
+            user.decisionDNAID = dna._id;
+            await user.save();
+            return dna;
+        }
+    } catch (err) {
+        console.error("AI Decision DNA synthesis error:", err.message);
+    }
+
+    // High quality deterministic fallback
+    let fallbackDna = await DecisionDNA.findOne({ user: userId });
+    if (!fallbackDna) {
+        fallbackDna = new DecisionDNA({
+            user: userId,
+            decisionStyle: "Strategic & Analytical Architect",
+            archetypeMatch: 92,
+            strategicThinking: 8,
+            analyticalThinking: 8,
+            innovationOrientation: 7,
+            stakeholderOrientation: 7,
+            riskTolerance: 6,
+            executionUrgency: 7,
+            ethicalOrientation: 8,
+            consensusOrientation: 6,
+            strengths: [
+                "High structural clarity during complex resource allocation",
+                "Rigorous multi-criteria trade-off discipline",
+                "Strong alignment of capital commitments with organizational horizon"
+            ],
+            blindSpots: [
+                "May delay execution in pursuit of perfect consensus",
+                "Can occasionally over-index on historical precedent during sudden market shifts"
+            ],
+            coachingAdvice: [
+                "Pre-commit explicit kill criteria for experimental initiatives.",
+                "Establish fast-track lanes for reversible two-way door decisions."
+            ]
+        });
+        await fallbackDna.save();
+        user.decisionDNAID = fallbackDna._id;
+        await user.save();
+    }
+    return fallbackDna;
+}
+
 // -- Profile API -----------------------------------------------------
 app.get('/api/profile/decision-dna', requireAuth, async (req, res) => {
     try {
-        const token = req.header('X-Auth-Token') || req.query.token || "";
-        const userId = valid_tokens.get(token);
+        const userId = req.userId;
         
         if (!userId) {
             return res.status(401).json({ error: "Invalid session." });
@@ -130,7 +293,13 @@ app.get('/api/profile/decision-dna', requireAuth, async (req, res) => {
             return res.status(404).json({ error: "User not found." });
         }
 
-        const dna = await DecisionDNA.findOne({ user: userId }).select('decisionStyle strategicThinking analyticalThinking innovationOrientation stakeholderOrientation riskTolerance executionUrgency ethicalOrientation consensusOrientation strengths blindSpots coachingAdvice -_id');
+        let dna = await DecisionDNA.findOne({ user: userId }).select('decisionStyle archetypeMatch strategicThinking analyticalThinking innovationOrientation stakeholderOrientation riskTolerance executionUrgency ethicalOrientation consensusOrientation strengths blindSpots coachingAdvice -_id');
+
+        // Automatically synthesize Decision DNA if this account does not have one yet!
+        if (!dna) {
+            await generateUserDecisionDNA(userId);
+            dna = await DecisionDNA.findOne({ user: userId }).select('decisionStyle archetypeMatch strategicThinking analyticalThinking innovationOrientation stakeholderOrientation riskTolerance executionUrgency ethicalOrientation consensusOrientation strengths blindSpots coachingAdvice -_id');
+        }
 
         res.json({
             user: user,
@@ -138,6 +307,17 @@ app.get('/api/profile/decision-dna', requireAuth, async (req, res) => {
         });
     } catch (e) {
         console.error(`ERROR /api/profile/decision-dna: ${e.message}`);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/profile/generate-dna', requireAuth, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const dna = await generateUserDecisionDNA(userId);
+        res.json({ success: true, decisionDNA: dna });
+    } catch (e) {
+        console.error(`ERROR /api/profile/generate-dna: ${e.message}`);
         res.status(500).json({ error: e.message });
     }
 });
@@ -589,7 +769,8 @@ Return ONLY valid JSON using this schema:
 "criticalUnknowns": ["..."],
 "successCriteria": ["..."],
 "informationGaps": ["..."],
-"decisionReadinessScore": 0
+"decisionReadinessScore": 0,
+"improvementSuggestions": ["Specific actionable recommendation to boost readiness score to 70+..."]
 }
 
 DECISION CONTEXT:
@@ -638,7 +819,7 @@ app.get('/api/decisions', requireAuth, async (req, res) => {
 
 app.get('/api/decisions/:id', requireAuth, async (req, res) => {
     try {
-        const decision = await Decision.findById(req.params.id);
+        const decision = await Decision.findOne({ _id: req.params.id, userId: req.userId });
         if (!decision) return res.status(404).json({ error: "Decision not found" });
         res.json(decision);
     } catch (e) {
@@ -649,184 +830,22 @@ app.get('/api/decisions/:id', requireAuth, async (req, res) => {
 // -- Report Generation API -------------------------------------------
 app.get('/api/decisions/:id/report', requireAuth, async (req, res) => {
     try {
-        const decision = await Decision.findById(req.params.id);
-        if (!decision) return res.status(404).json({ error: "Decision not found" });
-
-        const outcomes = await Outcome.find({ decisionId: req.params.id }).sort({ createdAt: 1 });
-        const latestOutcome = outcomes.length > 0 ? outcomes[outcomes.length - 1] : null;
-
-        res.setHeader('Content-disposition', `attachment; filename=Decision_Report_${req.params.id}.pdf`);
+        const reportData = await buildReportData(req.params.id, req.userId);
+        const html = renderReportTemplate(reportData);
+        const pdfBuffer = await renderHtmlToPdf(html);
+        
+        const safeTitle = (reportData.decision.title || 'Report').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+        res.setHeader('Content-disposition', `attachment; filename="Decision_Report_${safeTitle}.pdf"`);
         res.setHeader('Content-type', 'application/pdf');
-
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
-        doc.pipe(res);
-
-        const primaryColor = '#2c3e50';
-        const secondaryColor = '#34495e';
-        const accentColor = '#2980b9';
-
-        // --- Cover Page ---
-        doc.fontSize(28).fillColor(primaryColor).text('Executive Decision Report', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(18).fillColor(secondaryColor).text(decision.title || 'Untitled Decision', { align: 'center' });
-        doc.moveDown(2);
-        
-        doc.fontSize(12).fillColor('#000000');
-        doc.text(`Date: ${new Date().toLocaleDateString()}`);
-        doc.text(`Industry: ${decision.industry || 'N/A'}`);
-        doc.text(`Status: ${decision.status || 'Pending'}`);
-        doc.moveDown();
-        doc.fontSize(14).fillColor(accentColor).text('Recommended Strategy:');
-        doc.fontSize(12).fillColor('#000000').text(decision.recommendedOption || 'None');
-        
-        doc.addPage();
-
-        // --- Executive Summary ---
-        doc.fontSize(18).fillColor(primaryColor).text('Executive Summary', { underline: true });
-        doc.moveDown();
-
-        const readinessScore = decision.decisionReadinessScore || 0;
-        const qualityScore = latestOutcome?.decisionQualityScore || 'Pending';
-        const oc = latestOutcome ? Math.round((latestOutcome.assumptionAccuracy + latestOutcome.evidenceQuality + latestOutcome.executionEffectiveness) / 3) : 'Pending';
-
-        doc.fontSize(12).fillColor('#000000');
-        doc.text(`Readiness Score: ${readinessScore} / 100`);
-        doc.text(`Decision Quality Score: ${qualityScore}${typeof qualityScore === 'number' ? ' / 100' : ''}`);
-        doc.text(`Outcome Confidence: ${oc}${typeof oc === 'number' ? '%' : ''}`);
-        doc.moveDown();
-        doc.text(`Recommended Option: ${decision.recommendedOption || 'None'}`, { bold: true });
-        doc.moveDown();
-
-        const whyWon = decision.evaluation?.insights?.whyRecommendationWon || [];
-        if (whyWon.length > 0) {
-            doc.fontSize(14).fillColor(secondaryColor).text('Why This Recommendation Won');
-            doc.fontSize(12).fillColor('#000000');
-            whyWon.forEach(r => {
-                doc.text(`• ${r}`, { indent: 20 });
-            });
-            doc.moveDown();
-        }
-
-        // --- Decision Context ---
-        doc.fontSize(18).fillColor(primaryColor).text('Decision Context', { underline: true });
-        doc.moveDown();
-        doc.fontSize(12).fillColor('#000000');
-        doc.text(`Time Horizon: ${decision.horizon || 'N/A'}`);
-        doc.text(`Stakes: ${decision.stakes || 'N/A'}`);
-        doc.moveDown();
-        doc.text(`Description:`);
-        doc.text(decision.description || 'No description provided.');
-        doc.moveDown();
-
-        // --- Evidence & Intelligence ---
-        doc.addPage();
-        doc.fontSize(18).fillColor(primaryColor).text('Evidence & Intelligence', { underline: true });
-        doc.moveDown();
-        
-        const extracted = decision.documentInsights || {};
-        const sections = [
-            { title: 'Strategic Opportunities', data: extracted.strategicOpportunities },
-            { title: 'Strategic Risks', data: extracted.strategicRisks },
-            { title: 'Quantitative Metrics', data: extracted.quantitativeMetrics },
-            { title: 'Customer Insights', data: extracted.customerInsights },
-            { title: 'Competitive Intelligence', data: extracted.competitiveIntelligence }
-        ];
-
-        sections.forEach(sec => {
-            if (sec.data && sec.data.length > 0) {
-                doc.fontSize(14).fillColor(secondaryColor).text(sec.title);
-                doc.fontSize(11).fillColor('#000000');
-                sec.data.slice(0,3).forEach(item => {
-                    const insight = item.insight || JSON.stringify(item);
-                    doc.text(`• ${insight}`, { indent: 20 });
-                });
-                doc.moveDown();
-            }
-        });
-
-        // --- Option Evaluation ---
-        doc.addPage();
-        doc.fontSize(18).fillColor(primaryColor).text('Option Evaluation', { underline: true });
-        doc.moveDown();
-
-        if (decision.evaluation?.scores) {
-            decision.evaluation.scores.forEach(opt => {
-                doc.fontSize(14).fillColor(accentColor).text(`#${opt.rank || '-'} ${opt.option}`);
-                doc.fontSize(12).fillColor('#000000').text(`Weighted Score: ${opt.weightedScore || 'N/A'}`);
-                if (opt.criteriaScores) {
-                    doc.fontSize(10);
-                    Object.entries(opt.criteriaScores).forEach(([crit, score]) => {
-                        doc.text(`   - ${crit}: ${score} / 10`);
-                    });
-                }
-                doc.moveDown();
-            });
-        }
-
-        // --- Risk Analysis ---
-        if (decision.evaluation?.risks && decision.evaluation.risks.length > 0) {
-            doc.fontSize(18).fillColor(primaryColor).text('Risk Analysis', { underline: true });
-            doc.moveDown();
-            decision.evaluation.risks.forEach(r => {
-                doc.fontSize(14).fillColor(secondaryColor).text(`Option: ${r.option}`);
-                doc.fontSize(11).fillColor('#000000');
-                if (r.topRisk) {
-                    doc.text(`Top Risk: ${r.topRisk.description}`);
-                    doc.text(`Likelihood: ${r.topRisk.likelihood} / 10  |  Impact: ${r.topRisk.impact} / 10`);
-                } else if (r.risks && r.risks.length > 0) {
-                    doc.text(`Top Risk: ${r.risks[0]}`);
-                }
-                doc.text(`Mitigation: ${r.mitigation || 'N/A'}`);
-                doc.moveDown();
-            });
-        }
-
-        // --- Outcome Review ---
-        if (latestOutcome) {
-            doc.addPage();
-            doc.fontSize(18).fillColor(primaryColor).text('Outcome Review', { underline: true });
-            doc.moveDown();
-
-            doc.fontSize(12).fillColor('#000000');
-            doc.text(`Decision Quality Score: ${latestOutcome.decisionQualityScore} / 100`);
-            doc.text(`Assumption Accuracy: ${latestOutcome.assumptionAccuracy} / 100`);
-            doc.text(`Evidence Quality: ${latestOutcome.evidenceQuality} / 100`);
-            doc.text(`Execution Effectiveness: ${latestOutcome.executionEffectiveness} / 100`);
-            doc.moveDown();
-
-            if (latestOutcome.evaluation?.lessonsLearned && latestOutcome.evaluation.lessonsLearned.length > 0) {
-                doc.fontSize(14).fillColor(secondaryColor).text('Lessons Learned');
-                doc.fontSize(11).fillColor('#000000');
-                latestOutcome.evaluation.lessonsLearned.forEach(l => {
-                    doc.text(`• ${l}`, { indent: 20 });
-                });
-                doc.moveDown();
-            }
-
-            if (latestOutcome.evaluation?.futureRecommendations && latestOutcome.evaluation.futureRecommendations.length > 0) {
-                doc.fontSize(14).fillColor(secondaryColor).text('Future Recommendations');
-                doc.fontSize(11).fillColor('#000000');
-                latestOutcome.evaluation.futureRecommendations.forEach(r => {
-                    doc.text(`• ${r}`, { indent: 20 });
-                });
-                doc.moveDown();
-            }
-        }
-
-        // --- Organizational Learning ---
-        if (latestOutcome) {
-            doc.fontSize(18).fillColor(primaryColor).text('Organizational Learning', { underline: true });
-            doc.moveDown();
-            doc.fontSize(11).fillColor('#000000');
-            doc.text('A post-decision outcome has been recorded. These findings have been incorporated into the overall organizational learning database to improve future decision quality.');
-        }
-
-        doc.end();
-
+        res.send(pdfBuffer);
     } catch (e) {
         console.error(`ERROR /report: ${e.message}`);
         if (!res.headersSent) {
-            res.status(500).json({ error: e.message });
+            if (e.message.includes('not found or unauthorized')) {
+                res.status(403).json({ error: e.message });
+            } else {
+                res.status(500).json({ error: "Unable to generate the report. Please try again." });
+            }
         }
     }
 });
@@ -834,6 +853,8 @@ app.get('/api/decisions/:id/report', requireAuth, async (req, res) => {
 // -- Outcomes API ----------------------------------------------------
 app.get('/api/decisions/:id/outcomes', requireAuth, async (req, res) => {
     try {
+        const decision = await Decision.findOne({ _id: req.params.id, userId: req.userId });
+        if (!decision) return res.status(404).json({ error: "Decision not found" });
         const outcomes = await Outcome.find({ decisionId: req.params.id }).sort({ createdAt: 1 });
         res.json(outcomes);
     } catch (e) {
@@ -849,7 +870,7 @@ app.post('/api/evaluate-outcome', requireAuth, async (req, res) => {
             return res.status(400).json({ error: "Missing decisionId" });
         }
 
-        const decision = await Decision.findById(decisionId);
+        const decision = await Decision.findOne({ _id: decisionId, userId: req.userId });
         if (!decision) {
             return res.status(404).json({ error: "Decision not found" });
         }
@@ -1078,7 +1099,7 @@ app.patch('/api/decisions/:id/judgment', requireAuth, async (req, res) => {
             return res.status(400).json({ error: "Invalid reason provided." });
         }
 
-        const decision = await Decision.findById(req.params.id);
+        const decision = await Decision.findOne({ _id: req.params.id, userId: req.userId });
         if (!decision) {
             return res.status(404).json({ error: "Decision not found" });
         }
@@ -1102,7 +1123,7 @@ app.post('/api/decisions/:id/reflection', requireAuth, async (req, res) => {
     try {
         const { decisionTaken, confidence, biggestConcern, expectedOutcome, assumptionsConcerned } = req.body;
         
-        const decision = await Decision.findById(req.params.id);
+        const decision = await Decision.findOne({ _id: req.params.id, userId: req.userId });
         if (!decision) {
             return res.status(404).json({ error: "Decision not found" });
         }
@@ -1128,11 +1149,12 @@ app.post('/api/decisions/:id/reflection', requireAuth, async (req, res) => {
     }
 });
 
-// -- Organizational Learning API ---------------------------------------
-app.get('/api/organizational-metrics', requireAuth, async (req, res) => {
+// -- Personal Learning API (was Organizational) ------------------------
+app.get('/api/personal-metrics', requireAuth, async (req, res) => {
     try {
-        const decisions = await Decision.find();
-        const outcomes = await Outcome.find();
+        const decisions = await Decision.find({ userId: req.userId });
+        const decisionIds = decisions.map(d => d._id);
+        const outcomes = await Outcome.find({ decisionId: { $in: decisionIds } });
 
         const totalDecisions = decisions.length;
         
@@ -1155,10 +1177,11 @@ app.get('/api/organizational-metrics', requireAuth, async (req, res) => {
     }
 });
 
-app.post('/api/organizational-insights', requireAuth, async (req, res) => {
+app.post('/api/personal-insights', requireAuth, async (req, res) => {
     try {
-        const decisions = await Decision.find().sort({ createdAt: -1 }).limit(20);
-        const outcomes = await Outcome.find().sort({ createdAt: -1 }).limit(20);
+        const decisions = await Decision.find({ userId: req.userId }).sort({ createdAt: -1 }).limit(20);
+        const decisionIds = decisions.map(d => d._id);
+        const outcomes = await Outcome.find({ decisionId: { $in: decisionIds } }).sort({ createdAt: -1 }).limit(20);
 
         const avg = (arr, key) => {
             const valid = arr.filter(x => typeof x[key] === 'number');
@@ -1186,9 +1209,9 @@ Root Causes: ${(o.evaluation?.rootCauses || []).join(', ')}
 Lessons: ${(o.evaluation?.lessonsLearned || []).join(', ')}`;
         }).filter(Boolean).join('\n\n');
 
-        const prompt = `You are an Organizational Learning Analyst.
+        const prompt = `You are a Personal Learning Analyst.
 
-Your task is to identify patterns across historical decisions and outcomes.
+Your task is to identify patterns across a user's historical decisions and outcomes.
 
 Analyze:
 * Decision quality trends
@@ -1213,8 +1236,8 @@ Rules:
 Return ONLY valid JSON.
 Schema:
 {
-"organizationalStrengths": ["..."],
-"organizationalWeaknesses": ["..."],
+"personalStrengths": ["..."],
+"personalWeaknesses": ["..."],
 "successfulPatterns": ["..."],
 "failurePatterns": ["..."],
 "forecastingIssues": ["..."],
@@ -1230,7 +1253,7 @@ confidence should be between 0 and 100.`;
         
         res.json(result);
     } catch (e) {
-        console.error(`ERROR /organizational-insights: ${e.message}`);
+        console.error(`ERROR /personal-insights: ${e.message}`);
         res.status(500).json({ error: e.message });
     }
 });

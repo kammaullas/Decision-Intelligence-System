@@ -132,7 +132,7 @@ export const useStore = create((set) => ({
     const { token } = useStore.getState();
     if (!token) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions`, { credentials: 'include',
         headers: { 'X-Auth-Token': token }
       });
       const data = await res.json();
