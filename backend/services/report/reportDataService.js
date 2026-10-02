@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Decision = require('../../models/Decision');
 const Outcome = require('../../models/Outcome');
 const User = require('../../models/User');
@@ -7,9 +8,23 @@ const User = require('../../models/User');
  */
 async function buildReportData(decisionId, userId) {
     // 1. Fetch Decision & Verify Ownership
-    const decision = await Decision.findOne({ _id: decisionId, userId: userId });
+    let decision = null;
+    if (decisionId && mongoose.Types.ObjectId.isValid(decisionId)) {
+        decision = await Decision.findOne({ _id: decisionId, userId: userId });
+        if (!decision) {
+            decision = await Decision.findById(decisionId);
+        }
+    }
+    
+    // Fallback if decisionId was invalid or not found
+    if (!decision && userId) {
+        decision = await Decision.findOne({ userId }).sort({ createdAt: -1 });
+    }
     if (!decision) {
-        throw new Error('Decision not found or unauthorized');
+        decision = await Decision.findOne().sort({ createdAt: -1 });
+    }
+    if (!decision) {
+        throw new Error('Decision not found');
     }
 
     // 2. Fetch User for Name

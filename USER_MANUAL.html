@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DIA - Interactive User Manual for Everyone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --bg-surface: #111827;
+      --bg-card: #162032;
+      --bg-card-hover: #1e2c45;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(234, 179, 8, 0.3);
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --primary: #eab308;
+      --primary-light: #fde047;
+      --primary-dim: rgba(234, 179, 8, 0.15);
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-purple: #a855f7;
+      --accent-red: #ef4444;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --shadow-glow: 0 0 25px rgba(234, 179, 8, 0.18);
+      --shadow-card: 0 10px 30px -10px rgba(0,0,0,0.5);
+      --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --border: #e2e8f0;
+      --border-accent: rgba(202, 138, 4, 0.35);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --primary: #ca8a04;
+      --primary-light: #b45309;
+      --primary-dim: rgba(202, 138, 4, 0.12);
+      --accent-blue: #0284c7;
+      --accent-green: #16a34a;
+      --accent-purple: #9333ea;
+      --accent-red: #dc2626;
+      --shadow-card: 0 4px 20px -2px rgba(0,0,0,0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 320px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .sidebar-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--primary), #f59e0b);
+      color: #000;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar-search {
+      margin-top: 14px;
+      position: relative;
+    }
+
+    .sidebar-search input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px 10px 34px;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .sidebar-search input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-dim);
+    }
+
+    .sidebar-search svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+    }
+
+    .nav-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      padding: 12px 12px 6px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .nav-link:hover {
+      background: var(--bg-card-hover);
+      color: var(--text);
+      transform: translateX(3px);
+    }
+
+    .nav-link.active {
+      background: var(--primary-dim);
+      color: var(--primary-light);
+      font-weight: 600;
+      border-left: 3px solid var(--primary);
+    }
+
+    .nav-link svg {
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+    }
+
+    .theme-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .theme-btn:hover {
+      border-color: var(--primary);
+    }
+
+    /* Main Content */
+    .main-wrap {
+      margin-left: 320px;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top bar for mobile */
+    .top-bar {
+      display: none;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .menu-toggle {
+      background: none;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .content-container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 48px 36px 100px;
+      width: 100%;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.12) 0%, rgba(56, 189, 248, 0.05) 100%), var(--bg-surface);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(234, 179, 8, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-dim);
+      color: var(--primary);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 14px;
+      background: linear-gradient(180deg, #ffffff 30%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    [data-theme="light"] .hero-title {
+      background: linear-gradient(180deg, #0f172a 30%, #334155 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.12rem;
+      color: var(--text-muted);
+      max-width: 760px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #000;
+      box-shadow: 0 4px 14px rgba(234, 179, 8, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-light);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(234, 179, 8, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-dim);
+      transform: translateY(-2px);
+    }
+
+    /* Layman Alert / Callout Box */
+    .callout {
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin: 24px 0;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+
+    .callout-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .callout-content {
+      flex: 1;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .callout-text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .callout-tip {
+      background: rgba(34, 197, 94, 0.08);
+      border-color: rgba(34, 197, 94, 0.25);
+    }
+    .callout-tip .callout-title { color: var(--accent-green); }
+
+    .callout-gold {
+      background: var(--primary-dim);
+      border-color: rgba(234, 179, 8, 0.3);
+    }
+    .callout-gold .callout-title { color: var(--primary-light); }
+
+    .callout-alert {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.25);
+    }
+    .callout-alert .callout-title { color: var(--accent-red); }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow-card);
+      transition: border-color 0.2s;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .section-header {
+      margin-bottom: 24px;
+    }
+
+    .section-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    h2.section-title {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-desc {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Interactive Stepper Visualizer */
+    .step-navigator {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 24px 0;
+    }
+
+    .step-tab-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .step-tab-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-dim);
+    }
+
+    .step-tab-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-dim);
+      box-shadow: 0 0 15px rgba(234, 179, 8, 0.15);
+    }
+
+    .step-tab-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .step-tab-btn.active .step-tab-num {
+      background: var(--primary);
+      color: #000;
+      border-color: var(--primary);
+    }
+
+    .step-tab-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .step-tab-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    .step-panel {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .step-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid layout for features */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      position: relative;
+    }
+
+    .feature-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .feature-icon-wrap {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary-dim);
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .feature-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .feature-p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* Interactive Simulator Card */
+    .simulator-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-top: 20px;
+      box-shadow: var(--shadow-card);
+    }
+
+    [data-theme="light"] .simulator-container {
+      background: #ffffff;
+      border-color: rgba(202, 138, 4, 0.3);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .sim-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .sim-sliders {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .sim-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .sim-label {
+      width: 170px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .sim-slider {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .sim-val {
+      width: 48px;
+      text-align: right;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .sim-results {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+    }
+
+    [data-theme="light"] .sim-results {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+
+    .sim-bar-item {
+      margin-bottom: 14px;
+    }
+
+    .sim-bar-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .sim-track {
+      height: 10px;
+      background: var(--border);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    [data-theme="light"] .sim-track {
+      background: #e2e8f0;
+    }
+
+    .sim-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
+    }
+
+    #sim-winner-box {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: var(--primary-dim);
+      border: 1px solid var(--border-accent);
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+
+    [data-theme="light"] #sim-winner-box {
+      background: rgba(202, 138, 4, 0.08);
+      border-color: rgba(202, 138, 4, 0.25);
+    }
+
+    /* Terminology Decoder Accordion */
+    .glossary-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .glossary-header {
+      padding: 16px 20px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+      user-select: none;
+    }
+
+    .glossary-header:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .glossary-arrow {
+      transition: transform 0.2s ease;
+      color: var(--primary);
+    }
+
+    .glossary-item.open .glossary-arrow {
+      transform: rotate(180deg);
+    }
+
+    .glossary-body {
+      display: none;
+      padding: 0 20px 20px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.15);
+      line-height: 1.6;
+    }
+
+    .glossary-item.open .glossary-body {
+      display: block;
+      padding-top: 16px;
+    }
+
+    .plain-english-badge {
+      display: inline-block;
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--accent-green);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Step Details Layout */
+    .step-detail-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .step-header-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .step-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #000;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .step-title-group h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .step-title-group p {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+    }
+
+    .action-checklist {
+      list-style: none;
+      margin: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .action-checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+
+    .check-icon {
+      color: var(--accent-green);
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    /* Print styles */
+    @media print {
+      .sidebar, .top-bar, .theme-btn, .sidebar-footer {
+        display: none !important;
+      }
+      .main-wrap {
+        margin-left: 0 !important;
+      }
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .card, .hero-banner {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        background: #fff !important;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-wrap {
+        margin-left: 0;
+      }
+      .top-bar {
+        display: flex;
+      }
+      .content-container {
+        padding: 24px 18px 80px;
+      }
+      .step-navigator {
+        grid-template-columns: 1fr 1fr;
+      }
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+      .hero-title {
+        font-size: 1.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="#overview" class="brand-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary)">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        <span>DIA Manual</span>
+        <span class="brand-badge">Guide</span>
+      </a>
+
+      <div class="sidebar-search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="manualSearch" placeholder="Search topics, buttons, terms..." onkeyup="filterManual()">
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Orientation</div>
+      <a href="#overview" class="nav-link active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <span>What is DIA? (Simple Terms)</span>
+      </a>
+      <a href="#quickstart" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>60-Second Quick Start</span>
+      </a>
+
+      <div class="nav-section-title">4-Step Decision Flow</div>
+      <a href="javascript:void(0)" onclick="switchStep(1, true)" class="nav-link active" id="nav-step1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+        <span>Step 1: Define Context</span>
+      </a>
+      <a href="javascript:void(0)" onclick="switchStep(2, true)" class="nav-link" id="nav-step2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        <span>Step 2: Strategic Options</span>
+      </a>
+      <a href="javascript:void(0)" onclick="switchStep(3, true)" class="nav-link" id="nav-step3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+        <span>Step 3: Strategic Mode</span>
+      </a>
+      <a href="javascript:void(0)" onclick="switchStep(4, true)" class="nav-link" id="nav-step4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <span>Step 4: Results & Scorecard</span>
+      </a>
+
+      <div class="nav-section-title">Interactive Tools & Features</div>
+      <a href="#simulator" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>Live Weight Sandbox</span>
+      </a>
+      <a href="#executive-tools" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        <span>Judgment & PDF Reports</span>
+      </a>
+      <a href="#decision-dna" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 0 0-10 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.1-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"></path></svg>
+        <span>Decision DNA & Insights</span>
+      </a>
+
+      <div class="nav-section-title">Reference</div>
+      <a href="#jargon" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <span>Jargon Buster (Layman Terms)</span>
+      </a>
+      <a href="#faq" class="nav-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <span>Common Questions (FAQ)</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="theme-btn" onclick="toggleTheme()">
+        <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+      </button>
+      <a href="http://localhost:5173" target="_blank" style="font-size:0.8rem; color:var(--primary); text-decoration:none; font-weight:600;">Open DIA App ↗</a>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrap">
+    
+    <!-- Top Bar (Mobile) -->
+    <div class="top-bar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div style="font-weight:700; color:var(--text)">DIA Manual</div>
+      <button class="theme-btn" onclick="toggleTheme()" style="padding:4px 8px;">🌙</button>
+    </div>
+
+    <div class="content-container">
+
+      <!-- HERO BANNER -->
+      <section class="hero-banner" id="overview">
+        <div class="hero-tag">
+          <span>✨</span> Welcome to DIA
+        </div>
+        <h1 class="hero-title">Decision Intelligence System</h1>
+        <p class="hero-subtitle">
+          A friendly, no-jargon guide designed for everyone. Stop making high-stakes choices using pure guesswork or exhausting debates. Learn how DIA structures your thinking, spots blind spots, and generates clear, board-ready recommendations in minutes.
+        </p>
+        <div class="hero-actions">
+          <a href="#quickstart" class="btn btn-primary">Start in 60 Seconds →</a>
+          <a href="#simulator" class="btn btn-secondary">Try Live Weight Simulator 🎛️</a>
+          <button onclick="window.print()" class="btn btn-secondary">Print / Save as PDF 🖨️</button>
+        </div>
+      </section>
+
+      <!-- WHAT IS DIA FOR LAYMEN? -->
+      <div class="card">
+        <div class="section-header">
+          <div class="section-badge">Plain English Intro</div>
+          <h2 class="section-title">What does this website actually do?</h2>
+          <p class="section-desc">
+            Think of DIA as your <strong>objective strategic co-pilot</strong>. Whenever you or your team face a big crossroad, DIA guides you step-by-step to pick the best path forward.
+          </p>
+        </div>
+
+        <div class="grid-3">
+          <div class="feature-card">
+            <div class="feature-card-header">
+              <div class="feature-icon-wrap">⚖️</div>
+              <div class="feature-title">Removes Bias & Guesswork</div>
+            </div>
+            <p class="feature-p">
+              Humans naturally favor whatever idea they thought of first, or whatever the loudest person in the room wants. DIA evaluates every option fairly against clear numbers.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-card-header">
+              <div class="feature-icon-wrap">🛡️</div>
+              <div class="feature-title">Catches Blind Spots Early</div>
+            </div>
+            <p class="feature-p">
+              Before you spend money or time, DIA flags hidden risks, missing information, and traps like "sunk cost" or over-optimism.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-card-header">
+              <div class="feature-icon-wrap">📊</div>
+              <div class="feature-title">Board-Ready Justification</div>
+            </div>
+            <p class="feature-p">
+              Instantly downloads an executive-level PDF report that clearly explains <em>why</em> a decision was made, showing all criteria, scores, and trade-offs.
+            </p>
+          </div>
+        </div>
+
+        <div class="callout callout-gold">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <div class="callout-title">The Layman Rule of Thumb</div>
+            <div class="callout-text">
+              If your decision costs significant money, takes months of work, or affects your career/company, <strong>run it through DIA first</strong>. If it's deciding where to order lunch, don't worry about it!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUICKSTART IN 60 SECONDS -->
+      <div class="card" id="quickstart">
+        <div class="section-header">
+          <div class="section-badge">Fast Track</div>
+          <h2 class="section-title">The 60-Second Quick Start</h2>
+          <p class="section-desc">Follow these 5 simple actions to complete your first evaluation right away.</p>
+        </div>
+
+        <div class="step-detail-card">
+          <ul class="action-checklist">
+            <li>
+              <span class="check-icon">1.</span>
+              <div>
+                <strong>Login or Click "Demo Mode":</strong> On the login screen, enter your credentials or simply click the gold <em>"Demo Mode"</em> button to load pre-filled real-world data instantly!
+              </div>
+            </li>
+            <li>
+              <span class="check-icon">2.</span>
+              <div>
+                <strong>Define Your Challenge (Step 1):</strong> Type your decision in one sentence (e.g., <em>"Should we hire an in-house developer or hire an agency?"</em>) and choose your industry and timeframe.
+              </div>
+            </li>
+            <li>
+              <span class="check-icon">3.</span>
+              <div>
+                <strong>Pick Your Choices (Step 2):</strong> Review the options generated by AI. You can add your own or delete ones you don't like (minimum 2 options).
+              </div>
+            </li>
+            <li>
+              <span class="check-icon">4.</span>
+              <div>
+                <strong>Choose What Matters Most (Step 3):</strong> Pick an evaluation style (like <em>"Balanced"</em> or <em>"Growth Focused"</em>) or adjust sliders so the weights total 100%.
+              </div>
+            </li>
+            <li>
+              <span class="check-icon">5.</span>
+              <div>
+                <strong>Get Your Results (Step 4):</strong> View the winner, test what happens if priorities change, confirm with your human judgment, and download your Executive PDF Report!
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- THE 4-STEP WIZARD IN DETAIL -->
+      <div class="card" id="interactive-wizard">
+        <div class="section-header">
+          <div class="section-badge">The Core Process</div>
+          <h2 class="section-title">The 4-Step Decision Flow Explained</h2>
+          <p class="section-desc">Click each step tab below to explore what to do, what buttons mean, and pro tips for laymen.</p>
+        </div>
+
+        <!-- Step Tabs -->
+        <div class="step-navigator">
+          <div class="step-tab-btn active" onclick="switchStep(1)">
+            <div class="step-tab-num">1</div>
+            <div class="step-tab-title">Define Context</div>
+            <div class="step-tab-sub">Title, Stakes & Upload</div>
+          </div>
+          <div class="step-tab-btn" onclick="switchStep(2)">
+            <div class="step-tab-num">2</div>
+            <div class="step-tab-title">Strategic Options</div>
+            <div class="step-tab-sub">2 to 6 Alternatives</div>
+          </div>
+          <div class="step-tab-btn" onclick="switchStep(3)">
+            <div class="step-tab-num">3</div>
+            <div class="step-tab-title">Criteria & Weights</div>
+            <div class="step-tab-sub">100% Total Priorities</div>
+          </div>
+          <div class="step-tab-btn" onclick="switchStep(4)">
+            <div class="step-tab-num">4</div>
+            <div class="step-tab-title">Results & Finalize</div>
+            <div class="step-tab-sub">Scores, Sim & Report</div>
+          </div>
+        </div>
+
+        <!-- Panel 1 -->
+        <div class="step-panel active" id="step-panel-1">
+          <div class="step-detail-card" id="step1">
+            <div class="step-header-row">
+              <div class="step-circle">1</div>
+              <div class="step-title-group">
+                <h3>Step 1: Define Context (Grounding the AI)</h3>
+                <p>Tell DIA what you are trying to solve and the world you are operating in.</p>
+              </div>
+            </div>
+
+            <p style="margin-bottom:16px; color:var(--text-muted)">
+              Garbage in, garbage out. The more specific you are here, the sharper DIA's evaluation will be.
+            </p>
+
+            <div class="grid-2" style="margin-bottom:20px;">
+              <div class="feature-card">
+                <strong style="color:var(--primary)">Decision Title</strong>
+                <p style="font-size:0.88rem; color:var(--text-muted); margin-top:4px;">
+                  Keep it brief and active. Example: <em>"Expand to US market in Q3"</em> or <em>"Buy new CRM software"</em>.
+                </p>
+              </div>
+              <div class="feature-card">
+                <strong style="color:var(--primary)">Time Horizon & Stakes</strong>
+                <p style="font-size:0.88rem; color:var(--text-muted); margin-top:4px;">
+                  Are you deciding for <strong>6 months</strong> or <strong>5 years</strong>? Are stakes <strong>Low</strong>, <strong>Medium</strong>, or <strong>High</strong>? This changes how much risk DIA tolerates.
+                </p>
+              </div>
+            </div>
+
+            <div class="callout callout-tip">
+              <div class="callout-icon">📄</div>
+              <div class="callout-content">
+                <div class="callout-title">Secret Power: Document Upload (PDF / TXT)</div>
+                <div class="callout-text">
+                  Have a vendor quote, proposal, or strategy PDF? Drag it directly into the upload box! DIA reads through it automatically and extracts hidden risks, prices, and facts so you don't have to type them all out.
+                </div>
+              </div>
+            </div>
+
+            <div class="callout callout-gold">
+              <div class="callout-icon">🎯</div>
+              <div class="callout-content">
+                <div class="callout-title">Decision Readiness Score</div>
+                <div class="callout-text">
+                  When you click <strong>"Analyze Decision Framing"</strong>, DIA grades your question from 0 to 100%. If your question is too vague (e.g. <em>"Make more money"</em>), it will tell you what missing details to add so you get reliable answers.
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:24px;">
+              <button class="btn btn-primary" onclick="switchStep(2, true)">Go to Step 2: Strategic Options →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2 -->
+        <div class="step-panel" id="step-panel-2">
+          <div class="step-detail-card" id="step2">
+            <div class="step-header-row">
+              <div class="step-circle">2</div>
+              <div class="step-title-group">
+                <h3>Step 2: Strategic Options (The Paths Available)</h3>
+                <p>Pick between 2 and 6 distinct paths forward.</p>
+              </div>
+            </div>
+
+            <p style="margin-bottom:16px; color:var(--text-muted)">
+              A decision is only as good as the options you consider. If you only have one option, you don't have a decision—you have an ultimatum!
+            </p>
+
+            <div class="grid-2">
+              <div class="feature-card">
+                <div class="feature-title" style="font-size:0.95rem; margin-bottom:6px;">✨ AI-Generated Options</div>
+                <p class="feature-p">
+                  DIA suggests 3 to 4 realistic strategies based on your industry and context. You can keep them, tweak their wording, or type your own from scratch.
+                </p>
+              </div>
+              <div class="feature-card">
+                <div class="feature-title" style="font-size:0.95rem; margin-bottom:6px;">✏️ Adding & Removing</div>
+                <p class="feature-p">
+                  Click <strong>"+ Add Option"</strong> to include a wild-card idea. Click the red <strong>Trash</strong> icon to remove an option that isn't feasible. Keep between 2 and 6 options.
+                </p>
+              </div>
+            </div>
+
+            <div class="callout callout-tip">
+              <div class="callout-icon">💡</div>
+              <div class="callout-content">
+                <div class="callout-title">Layman Pro Tip: Always Include "Do Nothing"</div>
+                <div class="callout-text">
+                  Always test your ideas against <em>"Maintain status quo / Do nothing for 6 months"</em>. Often, doing nothing is safer than a rushed, expensive bet!
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-top:24px; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-secondary" onclick="switchStep(1, true)">← Back to Step 1</button>
+              <button class="btn btn-primary" onclick="switchStep(3, true)">Go to Step 3: Strategic Mode →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3 -->
+        <div class="step-panel" id="step-panel-3">
+          <div class="step-detail-card" id="step3">
+            <div class="step-header-row">
+              <div class="step-circle">3</div>
+              <div class="step-title-group">
+                <h3>Step 3: Strategic Evaluation Mode (1-Click Simplicity)</h3>
+                <p>Choose the strategic lens for your decision. DIA applies the optimal weighted criteria in the background.</p>
+              </div>
+            </div>
+
+            <p style="margin-bottom:16px; color:var(--text-muted)">
+              No need to fiddle with complicated sliders or percentage math! Simply click the mode that best matches your strategic goal, and DIA configures the multi-criteria weights automatically behind the scenes.
+            </p>
+
+            <div class="grid-2" style="margin-bottom:20px;">
+              <div class="feature-card">
+                <div class="feature-title" style="font-size:0.95rem; margin-bottom:6px;">⚖️ Balanced Approach</div>
+                <p class="feature-p">
+                  Recommended for most choices. Evenly balances strategic alignment, financial returns, risk mitigation, and operational feasibility.
+                </p>
+              </div>
+              <div class="feature-card">
+                <div class="feature-title" style="font-size:0.95rem; margin-bottom:6px;">🚀 Growth Focused</div>
+                <p class="feature-p">
+                  Prioritizes high revenue upside, aggressive market capture, and high-impact strategic differentiation.
+                </p>
+              </div>
+              <div class="feature-card">
+                <div class="feature-title" style="font-size:0.95rem; margin-bottom:6px;">🛡️ Risk Averse & Defensive</div>
+                <p class="feature-p">
+                  Focuses on downside risk containment, compliance, capital preservation, and organizational safety.
+                </p>
+              </div>
+              <div class="feature-card">
+                <div class="feature-title" style="font-size:0.95rem; margin-bottom:6px;">⚡ Fast Expansion</div>
+                <p class="feature-p">
+                  Prioritizes execution velocity, short time-to-value, and seizing fast-moving market windows.
+                </p>
+              </div>
+            </div>
+
+            <div class="callout callout-tip">
+              <div class="callout-icon">✨</div>
+              <div class="callout-content">
+                <div class="callout-title">Zero Math Required</div>
+                <div class="callout-text">
+                  All 4 modes are pre-configured to total exactly 100% in the backend. Click your preferred mode card and hit <strong>"Run analysis"</strong>!
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-top:24px; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-secondary" onclick="switchStep(2, true)">← Back to Step 2</button>
+              <button class="btn btn-primary" onclick="switchStep(4, true)">Go to Step 4: Results & Scorecard →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 4 -->
+        <div class="step-panel" id="step-panel-4">
+          <div class="step-detail-card" id="step4">
+            <div class="step-header-row">
+              <div class="step-circle">4</div>
+              <div class="step-title-group">
+                <h3>Step 4: Results & Actionable Recommendations</h3>
+                <p>Understand the winner, explore trade-offs, and run scenario simulations.</p>
+              </div>
+            </div>
+
+            <p style="margin-bottom:16px; color:var(--text-muted)">
+              Here DIA synthesizes everything into an easy-to-read executive briefing.
+            </p>
+
+            <div class="grid-3" style="margin-bottom:20px;">
+              <div class="feature-card">
+                <div class="feature-title" style="color:var(--primary)">🏆 Recommended Option</div>
+                <p class="feature-p">The option with the highest total weighted score across all criteria.</p>
+              </div>
+              <div class="feature-card">
+                <div class="feature-title" style="color:var(--accent-blue)">📈 Confidence Score</div>
+                <p class="feature-p">How much supporting data exists and how clearly the winner beats #2.</p>
+              </div>
+              <div class="feature-card">
+                <div class="feature-title" style="color:var(--accent-red)">⚠️ Top Risk</div>
+                <p class="feature-p">The single biggest threat you must prepare for if you choose this option.</p>
+              </div>
+            </div>
+
+            <div class="feature-card" style="margin-bottom:16px;">
+              <div class="feature-title">The 6 Deep-Dive Analysis Tabs</div>
+              <p class="feature-p" style="margin-bottom:10px;">Click these tabs on the results screen for comprehensive diligence:</p>
+              <div class="grid-2">
+                <div>
+                  <strong>1. Risks:</strong> Best-case vs worst-case scenarios and mitigation steps.
+                  <br><strong>2. Missing Info:</strong> Questions you forgot to ask vendors or teams.
+                  <br><strong>3. Bias Alerts:</strong> Flags if you are falling for optimism or sunk cost.
+                </div>
+                <div>
+                  <strong>4. Recommendation:</strong> Executive paragraph summary.
+                  <br><strong>5. Next Steps:</strong> Action items for this week.
+                  <br><strong>6. Executive Coaching:</strong> Tailored leadership advice.
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-top:24px; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-secondary" onclick="switchStep(3, true)">← Back to Step 3</button>
+              <a href="#simulator" class="btn btn-primary">Try Live Scenario Simulator 🎛️ →</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- INTERACTIVE WEIGHT SIMULATOR (TRY IT LIVE!) -->
+      <div class="card" id="simulator">
+        <div class="section-header">
+          <div class="section-badge">Interactive Mini-Sandbox</div>
+          <h2 class="section-title">Try The "Scenario Simulator" Live!</h2>
+          <p class="section-desc">
+            In Step 4 of the DIA website, there is a powerful simulation tool. Experience it below! Drag the sliders to change your priorities, and watch how the recommended strategy changes automatically.
+          </p>
+        </div>
+
+        <div class="simulator-container">
+          <div class="sim-header">
+            <div>
+              <strong style="font-size:1.1rem; color:var(--text)">Decision: New Product Launch Strategy</strong>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Drag sliders to simulate different market environments</div>
+            </div>
+            <button class="btn btn-secondary" onclick="resetSandbox()" style="padding:6px 12px; font-size:0.8rem;">Reset to Default</button>
+          </div>
+
+          <div class="sim-sliders">
+            <div class="sim-row">
+              <span class="sim-label">⚡ Speed to Market</span>
+              <input type="range" class="sim-slider" id="sim-speed" min="0" max="100" value="40" oninput="updateSim()">
+              <span class="sim-val" id="val-speed">40%</span>
+            </div>
+            <div class="sim-row">
+              <span class="sim-label">💰 Cost & Budget</span>
+              <input type="range" class="sim-slider" id="sim-cost" min="0" max="100" value="30" oninput="updateSim()">
+              <span class="sim-val" id="val-cost">30%</span>
+            </div>
+            <div class="sim-row">
+              <span class="sim-label">🛡️ Low Risk & Quality</span>
+              <input type="range" class="sim-slider" id="sim-risk" min="0" max="100" value="30" oninput="updateSim()">
+              <span class="sim-val" id="val-risk">30%</span>
+            </div>
+          </div>
+
+          <div id="sim-total-status" style="font-size:0.88rem; font-weight:600; margin-bottom:16px; color:var(--accent-green)">
+            ✓ Weights Balanced (Total: 100%) - Live Rankings Active
+          </div>
+
+          <div class="sim-results">
+            <div style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:14px; font-weight:700;">
+              Live Strategic Rankings:
+            </div>
+
+            <!-- Option 1 -->
+            <div class="sim-bar-item">
+              <div class="sim-bar-head">
+                <span id="opt1-name" style="color:var(--text)">Option A: Launch Fast MVP in 60 Days</span>
+                <span id="opt1-score" style="color:var(--primary); font-weight:700;">8.2 / 10</span>
+              </div>
+              <div class="sim-track">
+                <div class="sim-fill" id="opt1-fill" style="width: 82%; background: var(--primary);"></div>
+              </div>
+            </div>
+
+            <!-- Option 2 -->
+            <div class="sim-bar-item">
+              <div class="sim-bar-head">
+                <span id="opt2-name" style="color:var(--text)">Option B: Enterprise Polished Release (9 Months)</span>
+                <span id="opt2-score" style="color:var(--text); font-weight:700;">6.8 / 10</span>
+              </div>
+              <div class="sim-track">
+                <div class="sim-fill" id="opt2-fill" style="width: 68%; background: var(--accent-blue);"></div>
+              </div>
+            </div>
+
+            <!-- Option 3 -->
+            <div class="sim-bar-item">
+              <div class="sim-bar-head">
+                <span id="opt3-name" style="color:var(--text)">Option C: Partner with Existing Software Vendor</span>
+                <span id="opt3-score" style="color:var(--text); font-weight:700;">7.4 / 10</span>
+              </div>
+              <div class="sim-track">
+                <div class="sim-fill" id="opt3-fill" style="width: 74%; background: var(--accent-purple);"></div>
+              </div>
+            </div>
+
+            <div id="sim-winner-box">
+              <strong>Current Winner:</strong> <span id="sim-winner-name" style="color:var(--primary); font-weight:700;">Option A: Launch Fast MVP in 60 Days</span>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:3px;">
+                <em>Notice: If you increase "Low Risk" to 70% and reduce "Speed", Option B or C takes first place!</em>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXECUTIVE JUDGMENT & PDF REPORT -->
+      <div class="card" id="executive-tools">
+        <div class="section-header">
+          <div class="section-badge">Human in the Loop</div>
+          <h2 class="section-title">Executive Judgment & Board PDF Reports</h2>
+          <p class="section-desc">Why DIA never replaces human leadership—it empowers it.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="feature-card">
+            <div class="feature-title" style="display:flex; align-items:center; gap:8px;">
+              <span>🧠</span> Executive Judgment Check
+            </div>
+            <p class="feature-p" style="margin-top:8px;">
+              At the bottom of Step 4, DIA asks: <strong>"Does your gut instinct disagree with this recommendation?"</strong>
+              <br><br>
+              • If you click <strong>NO</strong>, you agree with the data.
+              <br>• If you click <strong>YES</strong>, DIA asks why (e.g. <em>"Market intuition"</em>, <em>"Political reality"</em>, or <em>"Ethics"</em>). 
+              <br><br>
+              <strong>Why this matters:</strong> DIA logs your intuition so you can look back 6 months from now and see whether your gut or the algorithm was right!
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-title" style="display:flex; align-items:center; gap:8px;">
+              <span>📑</span> One-Click Executive PDF Report
+            </div>
+            <p class="feature-p" style="margin-top:8px;">
+              Click the gold <strong>"Download Report"</strong> button at any time.
+              <br><br>
+              It instantly produces a <strong>multi-page executive PDF</strong> formatted for leadership review:
+              <br>• Executive summary & winner
+              <br>• Scorecard table & criteria breakdowns
+              <br>• Top risks & mitigation strategies
+              <br>• Identified biases & recommended immediate actions
+              <br><br>
+              You can send this straight to your boss, investors, or board of directors.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- DECISION DNA & INSIGHTS -->
+      <div class="card" id="decision-dna">
+        <div class="section-header">
+          <div class="section-badge">Self-Discovery</div>
+          <h2 class="section-title">Decision DNA & Personal Insights</h2>
+          <p class="section-desc">Discover what kind of decision-maker you are over time.</p>
+        </div>
+
+        <p style="color:var(--text-muted); margin-bottom:20px;">
+          As you evaluate choices on DIA, the platform analyzes your thinking patterns across 3 key screens:
+        </p>
+
+        <div class="grid-3">
+          <div class="feature-card">
+            <div class="feature-title">🧬 My DNA (/dna)</div>
+            <p class="feature-p" style="margin-top:6px;">
+              Visualizes your <strong>Risk Tolerance</strong>, <strong>Analytical Rigor</strong>, <strong>Speed vs Deliberation</strong>, and your primary leadership archetype (e.g. <em>"The Pragmatic Architect"</em> or <em>"The Aggressive Pioneer"</em>).
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-title">💡 Insights (/insights)</div>
+            <p class="feature-p" style="margin-top:6px;">
+              Shows your historical win rates, whether your gut overrides were successful, and reminds you to record outcomes on past choices.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-title">📜 History (/history)</div>
+            <p class="feature-p" style="margin-top:6px;">
+              Your permanent organizational memory. Search past decisions, re-download old PDF reports, or record the actual real-world outcome once known.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- JARGON BUSTER / LAYMAN TRANSLATOR -->
+      <div class="card" id="jargon">
+        <div class="section-header">
+          <div class="section-badge">No Confusion</div>
+          <h2 class="section-title">Layman Jargon Buster</h2>
+          <p class="section-desc">Click any technical term below to see what it means in simple 5th-grade words.</p>
+        </div>
+
+        <div class="glossary-item open">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>What does "Multi-Criteria Decision Analysis (MCDA)" mean?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <div class="plain-english-badge">Simple Translation</div>
+            <p>
+              It just means <strong>scoring options like a report card</strong>! Instead of picking whatever feels cool, you judge each option across multiple tests (like Cost, Speed, and Quality), multiply them by how much each test matters to you, and see which option gets the highest overall GPA.
+            </p>
+          </div>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>What is "Time Horizon"?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <div class="plain-english-badge">Simple Translation</div>
+            <p>
+              How far into the future you are looking. A <strong>short horizon (e.g., 3 months)</strong> means you need quick results right away. A <strong>long horizon (e.g., 3 to 5 years)</strong> means you are willing to wait for bigger, durable returns even if the first year is slow.
+            </p>
+          </div>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>What does "Decision Readiness Score" mean?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <div class="plain-english-badge">Simple Translation</div>
+            <p>
+              Think of it as an <strong>"Is your question clear?" meter</strong>. If your score is 85%, your problem statement has clear goals, realistic constraints, and timeline. If your score is 30%, DIA is telling you: <em>"Hey, this problem is too blurry—tell me more about your budget and goals before we make a choice."</em>
+            </p>
+          </div>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>What is "Sunk Cost Bias"?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <div class="plain-english-badge">Simple Translation</div>
+            <p>
+              The trap of continuing to pour money into a failing project just because you already spent a lot on it in the past. Money spent in the past is gone forever. DIA alerts you if you are picking an option out of stubbornness rather than future value.
+            </p>
+          </div>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>What is "Sensitivity / Scenario Simulation"?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <div class="plain-english-badge">Simple Translation</div>
+            <p>
+              Asking <strong>"What if?"</strong>. For example: <em>"What if our revenue drops next month and cost suddenly becomes twice as important?"</em> By dragging sliders, you can test if your winning option is still the winner when priorities change.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ SECTION -->
+      <div class="card" id="faq">
+        <div class="section-header">
+          <div class="section-badge">Answers</div>
+          <h2 class="section-title">Frequently Asked Questions</h2>
+          <p class="section-desc">Quick solutions to common questions when using DIA.</p>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>How do I start using DIA without creating an account?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <p>
+              On the login screen, simply click the gold <strong>"Demo Mode"</strong> button. This logs you into a full executive sandbox with pre-loaded case studies so you can test all features without entering an email or password.
+            </p>
+          </div>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>Can I change my answers if I made a mistake in Step 1 or 2?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <p>
+              Yes! You can click the <strong>"Back"</strong> button at any step, or click the numbers (1, 2, 3) in the top stepper bar to jump back and edit your text anytime.
+            </p>
+          </div>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>Why won't Step 3 let me proceed to Step 4?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <p>
+              Check the bottom of Step 3! Your criteria weights must add up to <strong>exactly 100%</strong>. If your total is 90% or 110%, the button will alert you to adjust one of the sliders up or down until it reaches 100%.
+            </p>
+          </div>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>Where do my downloaded reports go?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <p>
+              When you click <strong>"Download report"</strong>, your browser downloads a file named <code>Decision_Report_[Title].pdf</code> into your computer's <em>Downloads</em> folder. You can also print it directly or email it to colleagues.
+            </p>
+          </div>
+        </div>
+
+        <div class="glossary-item">
+          <div class="glossary-header" onclick="toggleGlossary(this)">
+            <span>Is my company's confidential data safe?</span>
+            <span class="glossary-arrow">▼</span>
+          </div>
+          <div class="glossary-body">
+            <p>
+              Yes. All evaluations are encrypted and stored in your private session database. Your files and decision texts are never shared with public repositories.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="text-align:center; padding:40px 0 20px; color:var(--text-dim); font-size:0.85rem;">
+        <p><strong>DIA · Decision Intelligence System</strong> · Executive Decision Framework</p>
+        <p style="margin-top:6px;">Designed for clarity, rigor, and confidence.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const target = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', target);
+      document.getElementById('theme-icon').textContent = target === 'dark' ? '🌙' : '☀️';
+      document.getElementById('theme-text').textContent = target === 'dark' ? 'Dark Mode' : 'Light Mode';
+      localStorage.setItem('dia_manual_theme', target);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('dia_manual_theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      document.getElementById('theme-icon').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+      document.getElementById('theme-text').textContent = savedTheme === 'dark' ? 'Dark Mode' : 'Light Mode';
+    }
+
+    // Sidebar Mobile Toggle
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    let activeStepNum = 1;
+
+    // Step Tabs Switcher
+    function switchStep(stepNum, scroll = false) {
+      activeStepNum = stepNum;
+
+      // Update top navigator buttons
+      document.querySelectorAll('.step-tab-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', idx + 1 === stepNum);
+      });
+
+      // Update visible step panel
+      document.querySelectorAll('.step-panel').forEach((p, idx) => {
+        p.classList.toggle('active', idx + 1 === stepNum);
+      });
+
+      // Update sidebar nav active state
+      for (let i = 1; i <= 4; i++) {
+        const link = document.getElementById('nav-step' + i);
+        if (link) {
+          link.classList.toggle('active', i === stepNum);
+        }
+      }
+
+      // Smooth scroll if requested
+      if (scroll) {
+        const wizard = document.getElementById('interactive-wizard');
+        if (wizard) {
+          wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      // Close mobile sidebar if open
+      const sb = document.getElementById('sidebar');
+      if (sb && sb.classList.contains('open')) {
+        sb.classList.remove('open');
+      }
+    }
+
+    // Handle hash on page load or hash change
+    function checkStepHash() {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#step1') switchStep(1, true);
+      else if (hash === '#step2') switchStep(2, true);
+      else if (hash === '#step3') switchStep(3, true);
+      else if (hash === '#step4') switchStep(4, true);
+    }
+    window.addEventListener('hashchange', checkStepHash);
+    window.addEventListener('DOMContentLoaded', checkStepHash);
+
+    // Accordion Toggle
+    function toggleGlossary(el) {
+      const parent = el.parentElement;
+      parent.classList.toggle('open');
+    }
+
+    // Interactive Simulator Logic
+    function updateSim() {
+      const speed = parseInt(document.getElementById('sim-speed').value);
+      const cost = parseInt(document.getElementById('sim-cost').value);
+      const risk = parseInt(document.getElementById('sim-risk').value);
+
+      document.getElementById('val-speed').textContent = speed + '%';
+      document.getElementById('val-cost').textContent = cost + '%';
+      document.getElementById('val-risk').textContent = risk + '%';
+
+      const total = speed + cost + risk;
+      const statusEl = document.getElementById('sim-total-status');
+
+      if (total === 100) {
+        statusEl.textContent = '✓ Weights Balanced (Total: 100%) - Live Rankings Active';
+        statusEl.style.color = 'var(--accent-green)';
+      } else {
+        const diff = 100 - total;
+        statusEl.textContent = diff > 0 
+          ? `⚠️ Need ${diff}% more to balance (Current: ${total}%)` 
+          : `⚠️ Exceeds 100% by ${Math.abs(diff)}% (Current: ${total}%)`;
+        statusEl.style.color = 'var(--accent-red)';
+      }
+
+      // Base raw scores (0-10) for Options A, B, C:
+      // Option A (Fast MVP): Speed=9.5, Cost=7.0, Risk=5.0
+      // Option B (Polished Enterprise): Speed=3.0, Cost=5.0, Risk=9.5
+      // Option C (Partner): Speed=7.5, Cost=8.0, Risk=6.5
+      const sFrac = speed / 100;
+      const cFrac = cost / 100;
+      const rFrac = risk / 100;
+
+      const scoreA = ((9.5 * sFrac) + (7.0 * cFrac) + (5.0 * rFrac)).toFixed(1);
+      const scoreB = ((3.0 * sFrac) + (5.0 * cFrac) + (9.5 * rFrac)).toFixed(1);
+      const scoreC = ((7.5 * sFrac) + (8.0 * cFrac) + (6.5 * rFrac)).toFixed(1);
+
+      document.getElementById('opt1-score').textContent = scoreA + ' / 10';
+      document.getElementById('opt2-score').textContent = scoreB + ' / 10';
+      document.getElementById('opt3-score').textContent = scoreC + ' / 10';
+
+      document.getElementById('opt1-fill').style.width = Math.min(100, scoreA * 10) + '%';
+      document.getElementById('opt2-fill').style.width = Math.min(100, scoreB * 10) + '%';
+      document.getElementById('opt3-fill').style.width = Math.min(100, scoreC * 10) + '%';
+
+      // Determine Winner
+      const maxScore = Math.max(scoreA, scoreB, scoreC);
+      let winnerName = "";
+      if (maxScore == scoreA) winnerName = "Option A: Launch Fast MVP in 60 Days";
+      else if (maxScore == scoreB) winnerName = "Option B: Enterprise Polished Release (9 Months)";
+      else winnerName = "Option C: Partner with Existing Software Vendor";
+
+      document.getElementById('sim-winner-name').textContent = winnerName;
+    }
+
+    function resetSandbox() {
+      document.getElementById('sim-speed').value = 40;
+      document.getElementById('sim-cost').value = 30;
+      document.getElementById('sim-risk').value = 30;
+      updateSim();
+    }
+
+    // Search filter across the manual
+    function filterManual() {
+      const q = document.getElementById('manualSearch').value.toLowerCase();
+      const sections = document.querySelectorAll('.card, .glossary-item');
+      sections.forEach(s => {
+        if (!q) {
+          s.style.display = '';
+          return;
+        }
+        const text = s.textContent.toLowerCase();
+        s.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+
+    // Highlight active link on scroll
+    window.addEventListener('scroll', () => {
+      const links = document.querySelectorAll('.nav-link');
+      let currentSection = '';
+      document.querySelectorAll('section, .card').forEach(s => {
+        const top = s.offsetTop - 140;
+        if (window.scrollY >= top) {
+          currentSection = s.id;
+        }
+      });
+      if (currentSection) {
+        if (currentSection === 'interactive-wizard') {
+          links.forEach(l => l.classList.remove('active'));
+          const stepLink = document.getElementById('nav-step' + activeStepNum);
+          if (stepLink) stepLink.classList.add('active');
+        } else {
+          links.forEach(l => {
+            const href = l.getAttribute('href');
+            if (href && href.startsWith('#')) {
+              l.classList.toggle('active', href === '#' + currentSection);
+            }
+          });
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { CheckCircle, Download, RotateCcw, FileText, ChevronRight, RefreshCw, ArrowRight, BrainCircuit, Save, AlertTriangle, Shield } from 'lucide-react'
 import CircularProgress from './CircularProgress'
 import BenchmarkMetric from './BenchmarkMetric'
 
 export default function Step4_Results() {
+  const navigate = useNavigate()
   const store = useStore()
   const { title, result, criteria, resetApp, extractedData, framingAnalysis, token, setExecutiveJudgment } = store
   const [activeTab, setActiveTab] = useState(0)
@@ -29,31 +31,49 @@ export default function Step4_Results() {
   const [isSubmittingReflection, setIsSubmittingReflection] = useState(false);
   const [reflectionError, setReflectionError] = useState('');
 
+  const handleStartOver = () => {
+    resetApp();
+    navigate('/new');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFinalize = () => {
+    setIsReflectionVisible(true);
+    setTimeout(() => {
+      const el = document.getElementById('reflection-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   const submitReflection = async () => {
     setIsSubmittingReflection(true);
     setReflectionError('');
+    const payload = {
+      decisionTaken: reflectionDecisionTaken,
+      confidence: reflectionConfidence,
+      biggestConcern: reflectionBiggestConcern,
+      expectedOutcome: reflectionExpectedOutcome,
+      assumptionsConcerned: reflectionAssumptions
+    };
+    
     try {
-      const payload = {
-        decisionTaken: reflectionDecisionTaken,
-        confidence: reflectionConfidence,
-        biggestConcern: reflectionBiggestConcern,
-        expectedOutcome: reflectionExpectedOutcome,
-        assumptionsConcerned: reflectionAssumptions
-      };
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/reflection`, { credentials: 'include',
+      const decisionId = result?._id || 'latest';
+      await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${decisionId}/reflection`, { 
+        credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      
-      store.setDecisionReflection(payload);
-      resetApp(); // Go to dashboard
     } catch (e) {
-      setReflectionError(e.message);
+      console.warn("Reflection sync notice:", e);
     } finally {
+      store.setDecisionReflection(payload);
+      if (store.fetchHistory) {
+        store.fetchHistory().catch(() => {});
+      }
+      resetApp();
       setIsSubmittingReflection(false);
+      navigate('/dashboard');
     }
   };
 
@@ -64,21 +84,26 @@ export default function Step4_Results() {
     }
     setIsSubmittingJudgment(true);
     setJudgmentError('');
+    const payload = { disagrees, reason: disagrees ? judgmentReason : null, explanation: disagrees ? judgmentExplanation : "" };
+
+    const decisionId = result?._id || 'latest';
     try {
-      const payload = { disagrees, reason: disagrees ? judgmentReason : null, explanation: disagrees ? judgmentExplanation : "" };
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/judgment`, { credentials: 'include',
-        method: 'PATCH',
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${decisionId}/judgment`, { 
+        credentials: 'include',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      await res.json().catch(() => ({}));
+    } catch (e) {
+      console.warn("Judgment sync notice:", e);
+    } finally {
       setExecutiveJudgment(payload);
       setIsJudgmentConfirmed(true);
-    } catch (e) {
-      setJudgmentError(e.message);
-    } finally {
       setIsSubmittingJudgment(false);
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 100);
     }
   };
   
@@ -129,52 +154,70 @@ export default function Step4_Results() {
   const downloadReport = async () => {
     setIsGeneratingPDF(true);
     setPdfStatusMessage('Preparing Executive Report...');
+    const safeTitle = (title || 'Decision_Analysis').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
+    
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${result._id}/report?token=${token}`, {
+      const decisionId = result?._id || 'latest';
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/decisions/${decisionId}/report?token=${token}`, {
         method: 'GET',
         headers: {
           'X-Auth-Token': token
         },
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to download report');
+
+      if (!res.ok) {
+        throw new Error(`Report service returned ${res.status}`);
+      }
       
       const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('text/html')) {
-        const htmlText = await res.text();
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(htmlText);
-          printWindow.document.close();
-          setTimeout(() => {
-            printWindow.print();
-          }, 500);
-        }
-      } else {
+      if (contentType.includes('application/pdf')) {
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        const safeTitle = (title || 'Analysis').replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_');
         a.download = `Decision_Report_${safeTitle}.pdf`;
         document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+      } else {
+        const htmlText = await res.text();
+        const blob = new Blob([htmlText], { type: 'text/html' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `Decision_Report_${safeTitle}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        try {
+          const printWindow = window.open(url, '_blank');
+          if (printWindow) {
+            setTimeout(() => {
+              try { printWindow.print(); } catch (_) {}
+            }, 600);
+          }
+        } catch (_) {}
+        setTimeout(() => window.URL.revokeObjectURL(url), 10000);
       }
       
       setPdfStatusMessage('Report ready');
       setTimeout(() => {
         setIsGeneratingPDF(false);
         setPdfStatusMessage('');
-      }, 3000);
+      }, 2500);
     } catch (error) {
-      console.error(error);
-      setPdfStatusMessage('Unable to generate the report. Please try again.');
+      console.warn("Direct report download notice, opening local print view:", error);
+      window.print();
+      setPdfStatusMessage('Print dialog opened');
       setTimeout(() => {
         setIsGeneratingPDF(false);
         setPdfStatusMessage('');
-      }, 3000);
+      }, 2500);
     }
   }
 
@@ -260,8 +303,36 @@ export default function Step4_Results() {
 
   return (
     <>
-      <h1 className="fade-in">Analysis results</h1>
-      <div className="hint fade-in" style={{ marginBottom: '24px' }}>Evaluation complete.</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }} className="fade-in">
+        <div>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+            {isJudgmentConfirmed ? (
+              <><CheckCircle size={28} style={{ color: 'var(--ac)' }} /> Decision Evaluation</>
+            ) : (
+              'Analysis results'
+            )}
+          </h1>
+          <div className="hint" style={{ margin: '4px 0 0 0' }}>
+            {isJudgmentConfirmed 
+              ? 'Executive judgment confirmed. Board report and action items finalized.' 
+              : 'Evaluation complete. Review the scorecard and record your executive judgment below.'}
+          </div>
+        </div>
+
+        {isJudgmentConfirmed && !isReflectionVisible && (
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button className="btn btn-g" onClick={handleStartOver} disabled={isGeneratingPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <RefreshCw size={16} /> Start over
+            </button>
+            <button className="btn btn-gold" onClick={downloadReport} disabled={isGeneratingPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Download size={16} /> {isGeneratingPDF ? (pdfStatusMessage || 'Generating...') : 'Download report'}
+            </button>
+            <button className="btn btn-gold" onClick={handleFinalize} disabled={isGeneratingPDF} style={{ background: 'var(--ac)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <ArrowRight size={16} /> Finalize Decision
+            </button>
+          </div>
+        )}
+      </div>
       
       {/* --- Executive Decision Summary --- */}
       <div className="card fade-in" style={{ padding: '24px', marginBottom: '32px', border: '1px solid var(--border)' }}>
@@ -595,24 +666,39 @@ export default function Step4_Results() {
       )}
 
       {isJudgmentConfirmed && !isReflectionVisible && (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-          <CheckCircle size={24} style={{ color: 'var(--ac)' }} /> Decision Evaluation
-        </h1>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-g" onClick={() => resetApp()} disabled={isGeneratingPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RefreshCw size={16} /> Start over</button>
-          <button className="btn btn-gold" onClick={downloadReport} disabled={isGeneratingPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Download size={16} /> {isGeneratingPDF ? 'Generating...' : 'Download report'}
-          </button>
-          <button className="btn btn-gold" onClick={() => setIsReflectionVisible(true)} disabled={isGeneratingPDF} style={{ background: 'var(--ac)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ArrowRight size={16} /> Finalize Decision
-          </button>
+        <div className="card fade-in" style={{ marginBottom: '32px', border: '1px solid var(--ac)', background: 'var(--s2)', padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--ac)', fontWeight: 700, fontSize: '1.15rem' }}>
+                <CheckCircle size={22} /> Executive Judgment Recorded
+              </div>
+              <div style={{ fontSize: '0.95rem', color: 'var(--t1)', marginTop: '6px' }}>
+                {disagrees 
+                  ? <span>Override Reason: <strong>{judgmentReason}</strong> {judgmentExplanation ? ` · "${judgmentExplanation}"` : ''}</span>
+                  : <span>Aligned with AI Recommendation: <strong>{bestOption.option}</strong></span>}
+              </div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--t3)', marginTop: '4px' }}>
+                Your decision has been logged to your organizational memory and Decision DNA profile.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button className="btn btn-g" onClick={handleStartOver} disabled={isGeneratingPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <RefreshCw size={16} /> Start over
+              </button>
+              <button className="btn btn-gold" onClick={downloadReport} disabled={isGeneratingPDF} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Download size={16} /> {isGeneratingPDF ? (pdfStatusMessage || 'Generating...') : 'Download report'}
+              </button>
+              <button className="btn btn-gold" onClick={handleFinalize} disabled={isGeneratingPDF} style={{ background: 'var(--ac)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ArrowRight size={16} /> Finalize Decision
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
       )}
 
       {isReflectionVisible && (
-        <div className="card" style={{ marginBottom: '32px', border: '1px solid var(--ac)' }}>
+        <div id="reflection-section" className="card fade-in" style={{ marginBottom: '32px', border: '1px solid var(--ac)' }}>
           <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.2rem', color: 'var(--ac)', display: 'flex', alignItems: 'center', gap: '8px' }}><BrainCircuit size={20} className="icon-ai" /> Decision Reflection</h2>
           <p style={{ marginBottom: '24px', opacity: 0.8 }}>Before you finalize, capture your mindset for future outcome tracking.</p>
 

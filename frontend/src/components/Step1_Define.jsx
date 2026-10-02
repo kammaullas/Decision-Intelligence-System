@@ -66,17 +66,6 @@ export default function Step1_Define() {
     }
   }
 
-  const handleAddressGap = (gapText, category) => {
-    const addition = `\n\n[Clarification - ${category}]: ${gapText}\nResolution / Details: `;
-    store.setField('desc', (desc || '') + addition);
-    setIsModifiedSinceAnalysis(true);
-    setTimeout(() => {
-      if (descTextareaRef.current) {
-        descTextareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        descTextareaRef.current.focus();
-      }
-    }, 100);
-  };
 
   const handleGenerate = async () => {
     if (!title) return store.setError("Enter a decision title.")
@@ -376,7 +365,7 @@ export default function Step1_Define() {
               <strong style={{ fontSize: '0.95rem', color: 'var(--t1)' }}>How to Improve Your Readiness Score (Reach 70+ Benchmark):</strong>
             </div>
             <p style={{ fontSize: '0.86rem', color: 'var(--t2)', margin: '0 0 14px 0', lineHeight: 1.5 }}>
-              The AI evaluates clarity, boundary conditions, and evidentiary depth. Click <strong>"+ Address in Framing"</strong> on any diagnosis below to add targeted clarifications to your description, then re-evaluate to see your score rise.
+              The AI evaluates clarity, boundary conditions, and evidentiary depth. Review the strategic diagnoses below, refine your decision description above, then re-evaluate to see your score rise.
             </p>
 
             {framingAnalysis.improvementSuggestions && framingAnalysis.improvementSuggestions.length > 0 && (
@@ -419,15 +408,8 @@ export default function Step1_Define() {
               </strong>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {(framingAnalysis.hiddenAssumptions || []).map((v, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', fontSize: '0.86rem', lineHeight: 1.35 }}>
-                    <span>• {v}</span>
-                    <button 
-                      onClick={() => handleAddressGap(v, 'Assumption')}
-                      title="Add to description to address"
-                      style={{ background: 'transparent', border: '1px solid var(--b1)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.72rem', color: 'var(--ac)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
-                    >
-                      + Address
-                    </button>
+                  <div key={i} style={{ fontSize: '0.86rem', lineHeight: 1.35, color: 'var(--t1)' }}>
+                    • {v}
                   </div>
                 ))}
               </div>
@@ -440,15 +422,8 @@ export default function Step1_Define() {
               </strong>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {(framingAnalysis.criticalUnknowns || []).map((v, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', fontSize: '0.86rem', lineHeight: 1.35 }}>
-                    <span>• {v}</span>
-                    <button 
-                      onClick={() => handleAddressGap(v, 'Unknown Factor')}
-                      title="Add to description to address"
-                      style={{ background: 'transparent', border: '1px solid var(--b1)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.72rem', color: 'var(--ac)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
-                    >
-                      + Address
-                    </button>
+                  <div key={i} style={{ fontSize: '0.86rem', lineHeight: 1.35, color: 'var(--t1)' }}>
+                    • {v}
                   </div>
                 ))}
               </div>
@@ -461,15 +436,8 @@ export default function Step1_Define() {
               </strong>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {(framingAnalysis.informationGaps || []).map((v, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', fontSize: '0.86rem', lineHeight: 1.35 }}>
-                    <span>• {v}</span>
-                    <button 
-                      onClick={() => handleAddressGap(v, 'Data Gap')}
-                      title="Add to description to address"
-                      style={{ background: 'transparent', border: '1px solid var(--b1)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.72rem', color: 'var(--ac)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
-                    >
-                      + Address
-                    </button>
+                  <div key={i} style={{ fontSize: '0.86rem', lineHeight: 1.35, color: 'var(--t1)' }}>
+                    • {v}
                   </div>
                 ))}
               </div>
@@ -482,15 +450,8 @@ export default function Step1_Define() {
               </strong>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {(framingAnalysis.missingConstraints || []).map((v, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', fontSize: '0.86rem', lineHeight: 1.35 }}>
-                    <span>• {v}</span>
-                    <button 
-                      onClick={() => handleAddressGap(v, 'Constraint')}
-                      title="Add to description to address"
-                      style={{ background: 'transparent', border: '1px solid var(--b1)', borderRadius: '4px', padding: '2px 6px', fontSize: '0.72rem', color: 'var(--ac)', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}
-                    >
-                      + Address
-                    </button>
+                  <div key={i} style={{ fontSize: '0.86rem', lineHeight: 1.35, color: 'var(--t1)' }}>
+                    • {v}
                   </div>
                 ))}
               </div>

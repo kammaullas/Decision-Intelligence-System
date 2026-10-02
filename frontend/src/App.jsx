@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
-import { Moon, Sun, LayoutDashboard, Fingerprint, Lightbulb, History, LogOut } from 'lucide-react'
+import { Moon, Sun, LayoutDashboard, Fingerprint, Lightbulb, History, LogOut, BookOpen } from 'lucide-react'
 import { useStore } from './store'
 import Login from './components/Login'
 import Step1_Define from './components/Step1_Define'
@@ -119,6 +119,9 @@ function App() {
               <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'transparent', color: 'var(--t1)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => navigate('/history')}>
                 <History size={16} className="icon-pulse" /> History
               </button>
+              <a href="/manual.html" target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.9rem', background: 'var(--primary-dim, rgba(234, 179, 8, 0.15))', color: 'var(--ac, #eab308)', border: '1px solid var(--border-accent, rgba(234, 179, 8, 0.3))', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', fontWeight: 600 }}>
+                <BookOpen size={16} /> Manual
+              </a>
               
               <button className="theme-toggle" onClick={toggleTheme} style={{ background: 'transparent', border: 'none', color: 'var(--t1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', marginLeft: '8px' }}>
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
@@ -144,6 +147,7 @@ function App() {
               <Route path="/history" element={<DecisionHistory />} />
               <Route path="/history/:id" element={<DecisionDetail />} />
               <Route path="/insights" element={<OrganizationalInsights />} />
+              <Route path="/manual" element={<iframe src="/manual.html" style={{ width: '100%', height: 'calc(100vh - 80px)', border: 'none', borderRadius: '12px' }} title="DIA Manual" />} />
             </Routes>
           </main>
         </div>

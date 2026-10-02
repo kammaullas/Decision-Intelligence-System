@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '../store'
 import { Shield, UserPlus, ArrowRight, Zap, Brain, BarChart3, Lock, Mail, User } from 'lucide-react'
 
@@ -10,6 +10,21 @@ export default function Login() {
   const [error, setError] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const { setToken, setLoading } = useStore()
+
+  useEffect(() => {
+    // Ensure inputs are completely empty on load so placeholders are visible
+    setEmail('')
+    setPassword('')
+    setName('')
+
+    // Wipe any late-injected browser autofill
+    const timer = setTimeout(() => {
+      setEmail(prev => (prev === 'demo@executive.com' ? '' : prev))
+      setPassword(prev => (prev === 'demo' ? '' : prev))
+    }, 120)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleLogin = async () => {
     if (!email || !password) return
@@ -61,6 +76,15 @@ export default function Login() {
       setError(true)
       setErrorMsg("Connection failed.")
     }
+  }
+
+  const handleToggleMode = () => {
+    setIsRegister(prev => !prev)
+    setName('')
+    setEmail('')
+    setPassword('')
+    setError(false)
+    setErrorMsg('')
   }
 
   const handleSubmit = () => {
@@ -139,41 +163,134 @@ export default function Login() {
                 : 'Sign in to your decision workspace'}
             </p>
 
+            {/* Decoy fields to intercept aggressive browser autofill */}
+            <div style={{ position: 'absolute', opacity: 0, height: 0, width: 0, overflow: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
+              <input type="text" name="fake_usernameremembered" tabIndex="-1" autoComplete="off" />
+              <input type="password" name="fake_passwordremembered" tabIndex="-1" autoComplete="off" />
+            </div>
+
             <div className="login-fields">
               {isRegister && (
                 <div className="login-field fade-in">
                   <User size={16} className="login-field-icon" />
                   <input 
+                    key="reg-name"
+                    id="dia-reg-name"
+                    name="dia_reg_name"
                     type="text" 
                     placeholder="Full name" 
                     value={name}
+                    readOnly
+                    onFocus={e => e.target.removeAttribute('readonly')}
+                    onMouseDown={e => e.target.removeAttribute('readonly')}
+                    onTouchStart={e => e.target.removeAttribute('readonly')}
+                    autoComplete="off"
                     onChange={e => setName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                    onKeyDown={e => {
+                      e.target.removeAttribute('readonly')
+                      if (e.key === 'Enter') handleSubmit()
+                    }}
                   />
                 </div>
               )}
 
-              <div className="login-field">
-                <Mail size={16} className="login-field-icon" />
-                <input 
-                  type="email" 
-                  placeholder="Email address" 
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                />
-              </div>
+              {isRegister ? (
+                <div className="login-field fade-in">
+                  <Mail size={16} className="login-field-icon" />
+                  <input 
+                    key="reg-email"
+                    id="dia-reg-email"
+                    name="dia_reg_email"
+                    type="email" 
+                    placeholder="Email address (e.g. name@company.com)" 
+                    value={email}
+                    readOnly
+                    onFocus={e => e.target.removeAttribute('readonly')}
+                    onMouseDown={e => e.target.removeAttribute('readonly')}
+                    onTouchStart={e => e.target.removeAttribute('readonly')}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    onChange={e => setEmail(e.target.value)}
+                    onKeyDown={e => {
+                      e.target.removeAttribute('readonly')
+                      if (e.key === 'Enter') handleSubmit()
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="login-field">
+                  <Mail size={16} className="login-field-icon" />
+                  <input 
+                    key="login-email"
+                    id="dia-login-email"
+                    name="dia_login_email"
+                    type="email" 
+                    placeholder="Email address" 
+                    value={email}
+                    readOnly
+                    onFocus={e => e.target.removeAttribute('readonly')}
+                    onMouseDown={e => e.target.removeAttribute('readonly')}
+                    onTouchStart={e => e.target.removeAttribute('readonly')}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                    onChange={e => setEmail(e.target.value)}
+                    onKeyDown={e => {
+                      e.target.removeAttribute('readonly')
+                      if (e.key === 'Enter') handleSubmit()
+                    }}
+                  />
+                </div>
+              )}
 
-              <div className="login-field">
-                <Lock size={16} className="login-field-icon" />
-                <input 
-                  type="password" 
-                  placeholder="Password" 
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                />
-              </div>
+              {isRegister ? (
+                <div className="login-field fade-in">
+                  <Lock size={16} className="login-field-icon" />
+                  <input 
+                    key="reg-password"
+                    id="dia-reg-password"
+                    name="dia_reg_password"
+                    type="password" 
+                    placeholder="Create a password" 
+                    value={password}
+                    readOnly
+                    onFocus={e => e.target.removeAttribute('readonly')}
+                    onMouseDown={e => e.target.removeAttribute('readonly')}
+                    onTouchStart={e => e.target.removeAttribute('readonly')}
+                    autoComplete="new-password"
+                    onChange={e => setPassword(e.target.value)}
+                    onKeyDown={e => {
+                      e.target.removeAttribute('readonly')
+                      if (e.key === 'Enter') handleSubmit()
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="login-field">
+                  <Lock size={16} className="login-field-icon" />
+                  <input 
+                    key="login-password"
+                    id="dia-login-password"
+                    name="dia_login_password"
+                    type="password" 
+                    placeholder="Password" 
+                    value={password}
+                    readOnly
+                    onFocus={e => e.target.removeAttribute('readonly')}
+                    onMouseDown={e => e.target.removeAttribute('readonly')}
+                    onTouchStart={e => e.target.removeAttribute('readonly')}
+                    autoComplete="new-password"
+                    onChange={e => setPassword(e.target.value)}
+                    onKeyDown={e => {
+                      e.target.removeAttribute('readonly')
+                      if (e.key === 'Enter') handleSubmit()
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             <div className={`login-err ${error ? 'on' : ''}`}>{errorMsg}</div>
@@ -188,7 +305,7 @@ export default function Login() {
 
             <div className="login-switch">
               {isRegister ? "Already have an account? " : "Don't have an account? "}
-              <span onClick={() => { setIsRegister(!isRegister); setError(false); }}>
+              <span onClick={handleToggleMode}>
                 {isRegister ? 'Sign in' : 'Sign up'}
               </span>
             </div>
@@ -204,6 +321,25 @@ export default function Login() {
                 <Zap size={14} /> Load EV Demo Scenario
               </button>
             )}
+
+            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+              <a 
+                href="/manual.html" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  fontSize: '0.85rem', 
+                  color: 'var(--ac, #eab308)', 
+                  textDecoration: 'none',
+                  fontWeight: 600
+                }}
+              >
+                📖 First time here? Read the User Manual ↗
+              </a>
+            </div>
           </div>
         </div>
       </div>
